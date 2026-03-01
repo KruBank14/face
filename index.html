@@ -3,21 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบเช็คชื่อด้วยใบหน้า เชื่อมต่อ Google Sheets</title>
-    
-    <!-- TensorFlow และ face-api.js -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.7.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2"></script>
-    
-    <!-- Font Awesome สำหรับไอคอน -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
+    <title>ระบบเช็คชื่อด้วยใบหน้า v4.6 Premium</title>
     <style>
         * {
             margin: 0;
-            padding: 0; 
+            padding: 0;
             box-sizing: border-box;
-            font-family: 'Sarabun', 'Prompt', sans-serif;
+            font-family: 'Sarabun', sans-serif;
         }
 
         body {
@@ -29,267 +21,65 @@
         .container {
             max-width: 1400px;
             margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
         }
 
+        /* Header */
         .header {
-            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
-            color: white;
-            padding: 20px 30px;
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .header h1 {
+        .logo h1 {
+            color: #333;
             font-size: 24px;
+        }
+
+        .logo span {
+            color: #667eea;
+            font-size: 14px;
+        }
+
+        .user-status {
+            background: #f0f2f5;
+            padding: 10px 20px;
+            border-radius: 50px;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .sync-status {
-            background: rgba(255,255,255,0.2);
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 14px;
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background: #4CAF50;
+            border-radius: 50%;
         }
 
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 400px;
-            gap: 20px;
-            padding: 20px;
-        }
-
-        .camera-section {
-            background: #f5f5f5;
-            border-radius: 15px;
-            padding: 20px;
-        }
-
-        .video-container {
-            position: relative;
-            width: 100%;
-            border-radius: 10px;
-            overflow: hidden;
-            background: #000;
-        }
-
-        video, canvas {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-
-        .overlay-canvas {
-            position: absolute;
+        /* Loading */
+        .loading-overlay {
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-        }
-
-        .controls {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-        }
-
-        button {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s;
-        }
-
-        button i {
-            font-size: 18px;
-        }
-
-        .btn-primary {
-            background: #4a90e2;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #357abd;
-        }
-
-        .btn-success {
-            background: #27ae60;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #219a52;
-        }
-
-        .btn-warning {
-            background: #f39c12;
-            color: white;
-        }
-
-        .btn-warning:hover {
-            background: #e67e22;
-        }
-
-        .btn-danger {
-            background: #e74c3c;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #c0392b;
-        }
-
-        .info-section {
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 20px;
-        }
-
-        .info-card {
-            background: white;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .info-card h3 {
-            margin-bottom: 15px;
-            color: #333;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .student-list {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .student-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .student-item:last-child {
-            border-bottom: none;
-        }
-
-        .student-info {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .student-name {
-            font-weight: 600;
-            color: #333;
-        }
-
-        .student-class {
-            font-size: 12px;
-            color: #666;
-        }
-
-        .student-status {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-        }
-
-        .status-present {
-            background: #27ae60;
-        }
-
-        .status-absent {
-            background: #e74c3c;
-        }
-
-        .attendance-log {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .log-item {
-            background: white;
-            padding: 10px;
-            margin-bottom: 8px;
-            border-radius: 8px;
-            border-left: 4px solid #4a90e2;
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        .log-time {
-            font-size: 12px;
-            color: #666;
-        }
-
-        .log-name {
-            font-weight: 600;
-            color: #333;
-            margin: 5px 0;
-        }
-
-        .log-class {
-            font-size: 12px;
-            color: #4a90e2;
-        }
-
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: white;
-            padding: 15px 25px;
-            border-radius: 8px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            background: rgba(255,255,255,0.9);
             display: none;
+            justify-content: center;
             align-items: center;
-            gap: 10px;
             z-index: 1000;
         }
 
-        .toast.success {
-            border-left: 4px solid #27ae60;
-        }
-
-        .toast.error {
-            border-left: 4px solid #e74c3c;
-        }
-
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #4a90e2;
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -299,555 +89,1003 @@
             100% { transform: rotate(360deg); }
         }
 
-        .statistics {
+        /* Main Grid */
+        .main-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Face Recognition Panel */
+        .face-panel {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .video-container {
+            background: #1a1a1a;
+            border-radius: 15px;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        #video, #canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 50px;
+            font-size: 14px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+            transform: translateY(-2px);
+        }
+
+        .btn-warning {
+            background: #ed8936;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        /* Activity Panel */
+        .activity-panel {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .panel-title {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f2f5;
+        }
+
+        .activity-list {
+            display: flex;
+            flex-direction: column;
             gap: 10px;
             margin-bottom: 20px;
         }
 
-        .stat-box {
+        .activity-item {
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .activity-item:hover {
+            background: #edf2f7;
+        }
+
+        .activity-item.selected {
+            border-color: #667eea;
+            background: #ebf4ff;
+        }
+
+        .activity-name {
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .activity-time {
+            font-size: 12px;
+            color: #718096;
+        }
+
+        .remote-control {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 12px;
+        }
+
+        .password-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .password-box {
+            aspect-ratio: 1;
+            background: #edf2f7;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #a0aec0;
+            border: 2px solid #e2e8f0;
+        }
+
+        /* Dashboard */
+        .dashboard {
             background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+
+        .dashboard-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f0f2f5;
+            padding-bottom: 10px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            background: #f7fafc;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f7fafc;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #4a5568;
+            border-bottom: 2px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            background: #f7fafc;
+            z-index: 10;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #2d3748;
+        }
+
+        tr:hover {
+            background: #f7fafc;
+        }
+
+        .student-table {
+            margin-top: 20px;
+        }
+
+        .descriptor-preview {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #718096;
+            font-size: 12px;
+        }
+
+        /* Forms */
+        .form-section {
+            display: none;
+        }
+
+        .form-section.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .alert {
             padding: 15px;
             border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+
+        .alert-error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 15px;
             text-align: center;
         }
 
         .stat-number {
-            font-size: 24px;
-            font-weight: 700;
-            color: #4a90e2;
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
         }
 
         .stat-label {
-            font-size: 12px;
-            color: #666;
+            color: #718096;
+            font-size: 14px;
+        }
+
+        .face-match-result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 10px;
+            background: #f0f2f5;
+            display: none;
+        }
+
+        .face-match-result.show {
+            display: block;
+        }
+
+        .match-high {
+            color: #48bb78;
+        }
+
+        .match-medium {
+            color: #ed8936;
+        }
+
+        .match-low {
+            color: #f56565;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>
-                <i class="fas fa-face-smile"></i>
-                ระบบเช็คชื่อด้วยใบหน้า (เชื่อมต่อ Google Sheets)
-            </h1>
-            <div class="sync-status" id="syncStatus">
-                <i class="fas fa-sync-alt"></i>
-                <span id="statusText">กำลังเชื่อมต่อ...</span>
-            </div>
-        </div>
-
-        <div class="main-content">
-            <div class="camera-section">
-                <div class="video-container">
-                    <video id="video" autoplay muted playsinline></video>
-                    <canvas id="overlay" class="overlay-canvas"></canvas>
-                </div>
-                
-                <div class="controls">
-                    <button class="btn-primary" onclick="startCamera()">
-                        <i class="fas fa-camera"></i> เริ่มกล้อง
-                    </button>
-                    <button class="btn-success" onclick="startDetection()">
-                        <i class="fas fa-play"></i> เริ่มเช็คชื่อ
-                    </button>
-                    <button class="btn-warning" onclick="stopDetection()">
-                        <i class="fas fa-stop"></i> หยุด
-                    </button>
-                    <button class="btn-danger" onclick="registerNewStudent()">
-                        <i class="fas fa-user-plus"></i> ลงทะเบียนนักเรียนใหม่
-                    </button>
-                    <button class="btn-primary" onclick="syncWithSheets()">
-                        <i class="fas fa-sync"></i> ซิงค์ข้อมูล
-                    </button>
-                </div>
-            </div>
-
-            <div class="info-section">
-                <div class="info-card">
-                    <h3>
-                        <i class="fas fa-chart-bar"></i>
-                        สถิติวันนี้
-                    </h3>
-                    <div class="statistics">
-                        <div class="stat-box">
-                            <div class="stat-number" id="totalStudents">0</div>
-                            <div class="stat-label">นักเรียนทั้งหมด</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-number" id="presentCount">0</div>
-                            <div class="stat-label">มาเรียน</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="info-card">
-                    <h3>
-                        <i class="fas fa-users"></i>
-                        รายชื่อนักเรียน
-                    </h3>
-                    <div class="student-list" id="studentList">
-                        <!-- รายชื่อจะแสดงที่นี่ -->
-                    </div>
-                </div>
-
-                <div class="info-card">
-                    <h3>
-                        <i class="fas fa-clock"></i>
-                        ประวัติการเช็คชื่อล่าสุด
-                    </h3>
-                    <div class="attendance-log" id="attendanceLog">
-                        <!-- ประวัติการเช็คชื่อจะแสดงที่นี่ -->
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="loading-overlay" id="loading">
+        <div class="loading-spinner"></div>
     </div>
 
-    <div id="toast" class="toast">
-        <i id="toastIcon" class="fas"></i>
-        <span id="toastMessage"></span>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <h1>Face Check-in v4.6 Premium</h1>
+                <span>ระบบเช็คชื่อด้วยใบหน้า เชื่อมต่อ Google Sheets</span>
+            </div>
+            <div class="user-status">
+                <span class="status-dot"></span>
+                <span id="userName">กำลังโหลด...</span>
+                <button class="btn btn-primary" style="padding: 5px 15px; font-size: 14px;" onclick="setupSheet()">ตั้งค่า Sheets</button>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Face Recognition Panel -->
+            <div class="face-panel">
+                <div class="video-container">
+                    <video id="video" autoplay playsinline></video>
+                    <canvas id="canvas"></canvas>
+                    <div class="video-overlay">🔴 กำลังตรวจจับใบหน้า</div>
+                </div>
+                <div class="controls">
+                    <button class="btn btn-primary" onclick="startCamera()">📷 เปิดกล้อง</button>
+                    <button class="btn btn-success" onclick="captureAndVerify()">✨ ยืนยันตัวตน</button>
+                    <button class="btn btn-warning" onclick="stopCamera()">⏹️ หยุดกล้อง</button>
+                </div>
+                
+                <!-- Face Match Result -->
+                <div class="face-match-result" id="faceMatchResult">
+                    <h4>ผลการจับคู่ใบหน้า</h4>
+                    <p id="matchName"></p>
+                    <p id="matchConfidence"></p>
+                    <p id="matchClass"></p>
+                </div>
+            </div>
+
+            <!-- Activity Panel -->
+            <div class="activity-panel">
+                <h3 class="panel-title">📋 เลือกกิจกรรม</h3>
+                <div class="activity-list" id="activityList">
+                    <!-- Activities will be loaded here -->
+                </div>
+
+                <div class="remote-control">
+                    <h4>🎮 รีโมทผ่าน</h4>
+                    <div class="password-grid">
+                        <div class="password-box">•</div>
+                        <div class="password-box">•</div>
+                        <div class="password-box">•</div>
+                        <div class="password-box">•</div>
+                        <div class="password-box">•</div>
+                    </div>
+                    <div style="margin-top: 10px; text-align: center; color: #718096; font-size: 12px;">
+                        สถานะสตูดิโอ: <span id="studioStatus">พร้อมใช้งาน</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="dashboard">
+            <div class="dashboard-tabs">
+                <div class="tab active" onclick="switchTab('attendance')">📊 การเข้าแถว</div>
+                <div class="tab" onclick="switchTab('students')">👥 รายชื่อนักเรียน</div>
+                <div class="tab" onclick="switchTab('activities')">📅 กิจกรรม</div>
+                <div class="tab" onclick="switchTab('statistics')">📈 สถิติ</div>
+            </div>
+
+            <!-- Attendance Tab -->
+            <div id="attendance-tab" class="form-section active">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Activity</th>
+                                <th>Name</th>
+                                <th>Class</th>
+                                <th>Status</th>
+                                <th>Confidence</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendance-body">
+                            <tr>
+                                <td colspan="8" style="text-align: center;">กำลังโหลดข้อมูล...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Students Tab -->
+            <div id="students-tab" class="form-section">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Class</th>
+                                <th>Number</th>
+                                <th>Face Data</th>
+                            </tr>
+                        </thead>
+                        <tbody id="students-body">
+                            <tr>
+                                <td colspan="5" style="text-align: center;">กำลังโหลดข้อมูล...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="student-table">
+                    <h4 style="margin: 20px 0 10px;">➕ เพิ่มนักเรียนใหม่</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                        <input type="text" class="form-control" id="newStudentName" placeholder="ชื่อ-นามสกุล">
+                        <input type="text" class="form-control" id="newStudentClass" placeholder="ชั้น (เช่น ม.1)">
+                        <input type="text" class="form-control" id="newStudentNumber" placeholder="เลขที่">
+                        <button class="btn btn-primary" onclick="addNewStudent()" style="padding: 10px;">บันทึก</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activities Tab -->
+            <div id="activities-tab" class="form-section">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <h4>📋 กิจกรรมทั้งหมด</h4>
+                        <div class="activity-list" id="activitiesList" style="margin-top: 10px;">
+                            <!-- Activities will be loaded here -->
+                        </div>
+                    </div>
+                    <div>
+                        <h4>📊 สถิติวันนี้</h4>
+                        <div style="background: #f7fafc; padding: 20px; border-radius: 15px; margin-top: 10px;" id="todayStats">
+                            <p>กำลังโหลด...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Tab -->
+            <div id="statistics-tab" class="form-section">
+                <div class="stats-grid" id="statsCards">
+                    <!-- Stats cards will be loaded here -->
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Total</th>
+                                <th>Present</th>
+                                <th>Late</th>
+                                <th>Absent</th>
+                                <th>Leave</th>
+                            </tr>
+                        </thead>
+                        <tbody id="statistics-body">
+                            <tr>
+                                <td colspan="6" style="text-align: center;">กำลังโหลดข้อมูล...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Toolbar -->
+        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px; padding: 10px; background: white; border-radius: 50px; flex-wrap: wrap;">
+            <button class="btn" style="background: #f7fafc;" onclick="exportData()">📥 Export ข้อมูล</button>
+            <button class="btn" style="background: #f7fafc;" onclick="refreshData()">🔄 รีเฟรชข้อมูล</button>
+            <button class="btn" style="background: #f7fafc;" onclick="showHelp()">❓ ช่วยเหลือ</button>
+        </div>
     </div>
 
     <script>
-        // กำหนดค่า
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzYFY-0XQCAXtpyDSZApcQt5Y7zI8-B1jC_AOZt7DpzC2aK-Qw1sgMjyEY7WfauTxWURw/exec'; // 🔴 เปลี่ยนเป็น URL ที่ได้จาก Google Apps Script
-        
-        // ตัวแปรหลัก
         let video = document.getElementById('video');
-        let overlay = document.getElementById('overlay');
-        let ctx = overlay.getContext('2d');
-        let isDetecting = false;
+        let canvas = document.getElementById('canvas');
+        let context = canvas.getContext('2d');
+        let stream = null;
+        let selectedActivity = null;
+        let activities = [];
         let students = [];
-        let registeredFaces = [];
-        let attendance = {};
-        let modelsLoaded = false;
-        let detectionInterval;
 
-        // ฟังก์ชันแสดง Toast Notification
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            const icon = document.getElementById('toastIcon');
-            const msg = document.getElementById('toastMessage');
-            
-            toast.className = `toast ${type}`;
-            icon.className = `fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}`;
-            msg.textContent = message;
-            
-            toast.style.display = 'flex';
+        // ฟังก์ชันแสดง loading
+        function showLoading(show = true) {
+            document.getElementById('loading').style.display = show ? 'flex' : 'none';
+        }
+
+        // ฟังก์ชันแสดงข้อความ
+        function showMessage(message, isSuccess = true) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = isSuccess ? 'alert alert-success' : 'alert alert-error';
+            alertDiv.textContent = message;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '1001';
+            document.body.appendChild(alertDiv);
             
             setTimeout(() => {
-                toast.style.display = 'none';
+                alertDiv.remove();
             }, 3000);
         }
 
-        // ตั้งค่ากล้อง
+        // ตั้งค่า Sheets
+        function setupSheet() {
+            showLoading(true);
+            google.script.run
+                .withSuccessHandler(() => {
+                    showLoading(false);
+                    showMessage('ตั้งค่า Sheets เรียบร้อย');
+                    loadAllData();
+                })
+                .withFailureHandler((error) => {
+                    showLoading(false);
+                    showMessage('เกิดข้อผิดพลาด: ' + error, false);
+                })
+                .setupSheets();
+        }
+
+        // โหลดข้อมูลทั้งหมด
+        function loadAllData() {
+            loadActivities();
+            loadStudents();
+            loadAttendance();
+            loadStatistics();
+        }
+
+        // โหลดกิจกรรม
+        function loadActivities() {
+            google.script.run
+                .withSuccessHandler((data) => {
+                    activities = data;
+                    displayActivities();
+                })
+                .getActivities();
+        }
+
+        // แสดงกิจกรรม
+        function displayActivities() {
+            const activityList = document.getElementById('activityList');
+            const activitiesList = document.getElementById('activitiesList');
+            
+            if (activities.length === 0) {
+                activityList.innerHTML = '<div class="activity-item">ไม่มีกิจกรรม</div>';
+                activitiesList.innerHTML = '<div class="activity-item">ไม่มีกิจกรรม</div>';
+                return;
+            }
+
+            // แสดงในหน้าเลือกกิจกรรม
+            activityList.innerHTML = '';
+            activities.forEach((activity, index) => {
+                const div = document.createElement('div');
+                div.className = 'activity-item' + (index === 0 ? ' selected' : '');
+                div.onclick = () => selectActivity(div, activity.ActivityName);
+                div.innerHTML = `
+                    <div class="activity-name">🏫 ${activity.ActivityName}</div>
+                    <div class="activity-time">${activity.StartTime} - ${activity.EndTime} น.</div>
+                `;
+                activityList.appendChild(div);
+            });
+
+            // เลือกกิจกรรมแรกเป็นค่าเริ่มต้น
+            if (activities.length > 0) {
+                selectedActivity = activities[0].ActivityName;
+            }
+
+            // แสดงในหน้า Activities tab
+            activitiesList.innerHTML = '';
+            activities.forEach(activity => {
+                const div = document.createElement('div');
+                div.className = 'activity-item';
+                div.innerHTML = `
+                    <div class="activity-name">${activity.ActivityName}</div>
+                    <div class="activity-time">${activity.StartTime} - ${activity.EndTime} น.</div>
+                `;
+                activitiesList.appendChild(div);
+            });
+        }
+
+        // โหลดนักเรียน
+        function loadStudents() {
+            google.script.run
+                .withSuccessHandler((data) => {
+                    students = data;
+                    displayStudents();
+                })
+                .getStudents();
+        }
+
+        // แสดงนักเรียน
+        function displayStudents() {
+            const tbody = document.getElementById('students-body');
+            
+            if (students.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">ไม่มีข้อมูลนักเรียน</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            students.forEach(student => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${student.ID || ''}</td>
+                    <td>${student.Name || ''}</td>
+                    <td>${student.Class || ''}</td>
+                    <td>${student.Number || ''}</td>
+                    <td class="descriptor-preview">${student.Descriptor ? 'มีข้อมูลใบหน้า' : 'ไม่มีข้อมูล'}</td>
+                `;
+            });
+        }
+
+        // โหลดข้อมูลการเข้าแถว
+        function loadAttendance() {
+            google.script.run
+                .withSuccessHandler((data) => {
+                    displayAttendance(data);
+                })
+                .getAttendance(50);
+        }
+
+        // แสดงข้อมูลการเข้าแถว
+        function displayAttendance(attendance) {
+            const tbody = document.getElementById('attendance-body');
+            
+            if (attendance.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">ไม่มีข้อมูลการเข้าแถว</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            attendance.forEach(record => {
+                const row = tbody.insertRow();
+                const statusColor = record.Status === 'มาเรียน' ? '#48bb78' : 
+                                  record.Status === 'มาสาย' ? '#ed8936' : '#a0aec0';
+                
+                row.innerHTML = `
+                    <td>${record.Timestamp || ''}</td>
+                    <td>${record.Date || ''}</td>
+                    <td>${record.Time || ''}</td>
+                    <td>${record.Activity || ''}</td>
+                    <td>${record.Name || ''}</td>
+                    <td>${record.Class || ''}</td>
+                    <td><span style="color: ${statusColor};">${record.Status || ''}</span></td>
+                    <td>${record.Confidence ? record.Confidence.toFixed(2) + '%' : '100%'}</td>
+                `;
+            });
+        }
+
+        // โหลดสถิติ
+        function loadStatistics() {
+            google.script.run
+                .withSuccessHandler((data) => {
+                    displayStatistics(data);
+                })
+                .getStatistics(7);
+        }
+
+        // แสดงสถิติ
+        function displayStatistics(stats) {
+            // แสดงสถิติรวม
+            const statsCards = document.getElementById('statsCards');
+            if (stats.length > 0) {
+                const today = stats[stats.length - 1];
+                statsCards.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-number">${today.total || 0}</div>
+                        <div class="stat-label">ทั้งหมด</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${today.present || 0}</div>
+                        <div class="stat-label">มาเรียน</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${today.late || 0}</div>
+                        <div class="stat-label">มาสาย</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${today.absent || 0}</div>
+                        <div class="stat-label">ขาด</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${today.leave || 0}</div>
+                        <div class="stat-label">ลา</div>
+                    </div>
+                `;
+
+                // อัพเดทสถิติวันนี้ใน Activities tab
+                document.getElementById('todayStats').innerHTML = `
+                    <p>✅ มาเรียน: ${today.present || 0} คน</p>
+                    <p>⏰ มาสาย: ${today.late || 0} คน</p>
+                    <p>❌ ขาด: ${today.absent || 0} คน</p>
+                    <p>📝 ลา: ${today.leave || 0} คน</p>
+                    <p>👥 รวม: ${today.total || 0} คน</p>
+                `;
+            }
+
+            // แสดงตารางสถิติ
+            const tbody = document.getElementById('statistics-body');
+            if (stats.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">ไม่มีข้อมูลสถิติ</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            stats.reverse().forEach(stat => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${stat.date || ''}</td>
+                    <td>${stat.total || 0}</td>
+                    <td>${stat.present || 0}</td>
+                    <td>${stat.late || 0}</td>
+                    <td>${stat.absent || 0}</td>
+                    <td>${stat.leave || 0}</td>
+                `;
+            });
+        }
+
+        // ฟังก์ชันสำหรับสลับแท็บ
+        function switchTab(tabName) {
+            document.querySelectorAll('.form-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        // เลือกกิจกรรม
+        function selectActivity(element, activity) {
+            document.querySelectorAll('.activity-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            element.classList.add('selected');
+            selectedActivity = activity;
+        }
+
+        // เปิดกล้อง
         async function startCamera() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
+                stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { 
                         width: { ideal: 1280 },
                         height: { ideal: 720 },
                         facingMode: 'user'
-                    },
-                    audio: false 
+                    } 
                 });
-                
                 video.srcObject = stream;
-                
-                await new Promise((resolve) => {
-                    video.onloadedmetadata = () => {
-                        overlay.width = video.videoWidth;
-                        overlay.height = video.videoHeight;
-                        resolve();
-                    };
-                });
-                
-                showToast('เปิดกล้องสำเร็จ', 'success');
-                updateSyncStatus('พร้อมทำงาน');
-                
-            } catch (error) {
-                showToast('ไม่สามารถเปิดกล้องได้: ' + error.message, 'error');
+                showMessage('เปิดกล้องเรียบร้อย');
+            } catch (err) {
+                showMessage('ไม่สามารถเปิดกล้องได้: ' + err.message, false);
             }
         }
 
-        // โหลดโมเดล face-api
-        async function loadModels() {
-            try {
-                updateSyncStatus('กำลังโหลดโมเดล AI...');
-                
-                await faceapi.nets.ssdMobilenetv1.loadFromUri('https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights');
-                await faceapi.nets.faceLandmark68Net.loadFromUri('https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights');
-                await faceapi.nets.faceRecognitionNet.loadFromUri('https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights');
-                
-                modelsLoaded = true;
-                updateSyncStatus('โหลดโมเดลสำเร็จ');
-                showToast('โหลดโมเดล AI สำเร็จ', 'success');
-                
-                // โหลดข้อมูลนักเรียนจาก Google Sheets
-                await loadStudentsFromSheets();
-                
-            } catch (error) {
-                updateSyncStatus('โหลดโมเดลไม่สำเร็จ');
-                showToast('ไม่สามารถโหลดโมเดล AI ได้', 'error');
-                console.error(error);
+        // หยุดกล้อง
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                document.getElementById('faceMatchResult').classList.remove('show');
+                showMessage('ปิดกล้องเรียบร้อย');
             }
         }
 
-        // โหลดข้อมูลนักเรียนจาก Google Sheets
-        async function loadStudentsFromSheets() {
-            try {
-                updateSyncStatus('กำลังโหลดข้อมูลนักเรียน...');
-                
-                const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getStudents`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    students = data.students;
-                    
-                    // สร้าง FaceMatcher จากข้อมูลที่โหลดมา
-                    registeredFaces = students
-                        .filter(s => s.faceDescriptor)
-                        .map(s => ({
-                            name: s.name,
-                            descriptor: new Float32Array(Object.values(s.faceDescriptor))
-                        }));
-                    
-                    updateStudentList();
-                    updateSyncStatus(`โหลดข้อมูล ${students.length} คน`);
-                    showToast(`โหลดข้อมูลนักเรียน ${students.length} คน`, 'success');
-                }
-                
-            } catch (error) {
-                updateSyncStatus('โหลดข้อมูลไม่สำเร็จ');
-                showToast('ไม่สามารถโหลดข้อมูลจาก Google Sheets', 'error');
-                console.error(error);
+        // จับภาพและยืนยันตัวตน
+        function captureAndVerify() {
+            if (!video.srcObject) {
+                showMessage('กรุณาเปิดกล้องก่อน', false);
+                return;
             }
-        }
 
-        // อัปเดตรายชื่อนักเรียน
-        function updateStudentList() {
-            const listElement = document.getElementById('studentList');
-            const today = new Date().toLocaleDateString('th-TH');
-            
-            let html = '';
-            students.forEach(student => {
-                const isPresent = attendance[today] && attendance[today][student.name];
-                
-                html += `
-                    <div class="student-item">
-                        <div class="student-info">
-                            <span class="student-name">${student.name}</span>
-                            <span class="student-class">${student.class || 'ไม่มีชั้นเรียน'}</span>
-                        </div>
-                        <div class="student-status ${isPresent ? 'status-present' : 'status-absent'}"></div>
-                    </div>
-                `;
-            });
-            
-            listElement.innerHTML = html;
-            document.getElementById('totalStudents').textContent = students.length;
-        }
+            if (!selectedActivity) {
+                showMessage('กรุณาเลือกกิจกรรม', false);
+                return;
+            }
 
-        // ฟังก์ชันตรวจจับใบหน้า
-        async function detectFaces() {
-            if (!isDetecting || !modelsLoaded) return;
+            showLoading(true);
 
-            try {
-                // ตรวจจับใบหน้า
-                const detections = await faceapi
-                    .detectAllFaces(video)
-                    .withFaceLandmarks()
-                    .withFaceDescriptors();
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                // วาดกรอบใบหน้า
-                ctx.clearRect(0, 0, overlay.width, overlay.height);
-                
-                // ปรับขนาด detections ให้ตรงกับ canvas
-                const displaySize = { width: overlay.width, height: overlay.height };
-                const resizedDetections = faceapi.resizeResults(detections, displaySize);
-                
-                // วาดกรอบ
-                faceapi.draw.drawDetections(overlay, resizedDetections);
-                faceapi.draw.drawFaceLandmarks(overlay, resizedDetections);
+            // สร้าง face descriptor จำลอง (ในระบบจริงต้องใช้ Face API)
+            const mockDescriptor = Array(128).fill(0).map(() => Math.random() * 2 - 1);
 
-                // ตรวจสอบและเช็คชื่อ
-                if (registeredFaces.length > 0) {
-                    detections.forEach(detection => {
-                        const faceMatcher = new faceapi.FaceMatcher(
-                            registeredFaces.map(f => f.descriptor),
-                            registeredFaces.map(f => f.name)
-                        );
+            // ค้นหานักเรียนจากใบหน้า
+            google.script.run
+                .withSuccessHandler((result) => {
+                    if (result.student) {
+                        // เจอใบหน้าที่ตรงกัน
+                        const confidence = (result.confidence * 100).toFixed(2);
                         
-                        const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
+                        // แสดงผลการจับคู่
+                        const matchResult = document.getElementById('faceMatchResult');
+                        document.getElementById('matchName').innerHTML = `👤 ชื่อ: ${result.student.Name}`;
+                        document.getElementById('matchConfidence').innerHTML = `🎯 ความแม่นยำ: <span class="${confidence > 80 ? 'match-high' : confidence > 60 ? 'match-medium' : 'match-low'}">${confidence}%</span>`;
+                        document.getElementById('matchClass').innerHTML = `📚 ชั้น: ${result.student.Class} เลขที่: ${result.student.Number}`;
+                        matchResult.classList.add('show');
+
+                        // บันทึกการเช็คชื่อ
+                        const status = confidence > 80 ? 'มาเรียน' : (confidence > 60 ? 'มาสาย' : 'เข้าแถว');
                         
-                        if (bestMatch.label !== 'unknown' && bestMatch.distance < 0.6) {
-                            checkAttendance(bestMatch.label, bestMatch.distance);
-                            
-                            // วาดชื่อบนกรอบ
-                            const box = resizedDetections[0]?.detection.box;
-                            if (box) {
-                                ctx.font = '16px Sarabun';
-                                ctx.fillStyle = '#27ae60';
-                                ctx.fillText(`${bestMatch.label} (${Math.round((1 - bestMatch.distance) * 100)}%)`, box.x, box.y - 10);
-                            }
-                        }
-                    });
-                }
-
-            } catch (error) {
-                console.error('Detection error:', error);
-            }
-        }
-
-        // ฟังก์ชันเช็คชื่อ
-        async function checkAttendance(studentName, confidence) {
-            const today = new Date().toLocaleDateString('th-TH');
-            const currentTime = new Date().toLocaleTimeString('th-TH');
-            
-            if (!attendance[today]) {
-                attendance[today] = {};
-            }
-            
-            if (!attendance[today][studentName]) {
-                // หาข้อมูลนักเรียน
-                const student = students.find(s => s.name === studentName);
-                
-                attendance[today][studentName] = {
-                    time: currentTime,
-                    status: 'มาเรียน',
-                    studentId: student?.id || '',
-                    class: student?.class || '',
-                    confidence: confidence
-                };
-                
-                // อัปเดต UI
-                updateStudentList();
-                addToAttendanceLog(studentName, currentTime, student?.class);
-                updatePresentCount();
-                
-                // บันทึกไปยัง Google Sheets
-                await saveAttendanceToSheets([{
-                    date: today,
-                    time: currentTime,
-                    studentId: student?.id || '',
-                    studentName: studentName,
-                    class: student?.class || '',
-                    status: 'มาเรียน',
-                    confidence: confidence
-                }]);
-                
-                showToast(`เช็คชื่อ ${studentName} สำเร็จ`, 'success');
-            }
-        }
-
-        // เพิ่มประวัติการเช็คชื่อ
-        function addToAttendanceLog(name, time, className) {
-            const logElement = document.getElementById('attendanceLog');
-            
-            const logItem = document.createElement('div');
-            logItem.className = 'log-item';
-            logItem.innerHTML = `
-                <div class="log-time">${time}</div>
-                <div class="log-name">${name}</div>
-                <div class="log-class">${className || 'ไม่มีชั้นเรียน'}</div>
-            `;
-            
-            logElement.insertBefore(logItem, logElement.firstChild);
-            
-            // จำกัดให้แสดงแค่ 20 รายการล่าสุด
-            if (logElement.children.length > 20) {
-                logElement.removeChild(logElement.lastChild);
-            }
-        }
-
-        // อัปเดตจำนวนนักเรียนที่มา
-        function updatePresentCount() {
-            const today = new Date().toLocaleDateString('th-TH');
-            const count = attendance[today] ? Object.keys(attendance[today]).length : 0;
-            document.getElementById('presentCount').textContent = count;
-        }
-
-        // บันทึกข้อมูลไป Google Sheets
-        async function saveAttendanceToSheets(records) {
-            try {
-                updateSyncStatus('กำลังบันทึก...');
-                
-                const response = await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: new URLSearchParams({
-                        action: 'saveAttendance',
-                        data: JSON.stringify(records)
-                    })
-                });
-                
-                updateSyncStatus('บันทึกแล้ว');
-                
-            } catch (error) {
-                updateSyncStatus('บันทึกไม่สำเร็จ');
-                console.error('Error saving to sheets:', error);
-            }
-        }
-
-        // ซิงค์ข้อมูลกับ Google Sheets
-        async function syncWithSheets() {
-            await loadStudentsFromSheets();
-            
-            // โหลดประวัติวันนี้
-            const today = new Date().toLocaleDateString('th-TH');
-            
-            try {
-                const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getTodayAttendance&date=${encodeURIComponent(today)}`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    attendance[today] = {};
-                    
-                    data.attendance.forEach(record => {
-                        attendance[today][record.studentName] = {
-                            time: record.time,
-                            status: record.status,
-                            studentId: record.studentId,
-                            class: record.class
+                        const attendanceData = {
+                            activity: selectedActivity,
+                            studentId: result.student.ID,
+                            name: result.student.Name,
+                            class: result.student.Class,
+                            status: status,
+                            confidence: parseFloat(confidence)
                         };
+
+                        google.script.run
+                            .withSuccessHandler(() => {
+                                showLoading(false);
+                                showMessage(`✅ บันทึกการเช็คชื่อเรียบร้อย: ${result.student.Name}`);
+                                loadAttendance(); // โหลดข้อมูลล่าสุด
+                            })
+                            .withFailureHandler((error) => {
+                                showLoading(false);
+                                showMessage('เกิดข้อผิดพลาดในการบันทึก: ' + error, false);
+                            })
+                            .saveAttendance(attendanceData);
+                    } else {
+                        // ไม่เจอใบหน้า
+                        showLoading(false);
+                        showMessage('❌ ไม่พบข้อมูลใบหน้าในระบบ กรุณาลงทะเบียนก่อน', false);
                         
-                        addToAttendanceLog(record.studentName, record.time, record.class);
-                    });
-                    
-                    updateStudentList();
-                    updatePresentCount();
-                    showToast('ซิงค์ข้อมูลสำเร็จ', 'success');
-                }
-                
-            } catch (error) {
-                console.error('Error syncing:', error);
-            }
-        }
-
-        // เริ่มตรวจจับใบหน้า
-        function startDetection() {
-            if (!modelsLoaded) {
-                showToast('กำลังโหลดโมเดล กรุณารอสักครู่', 'error');
-                return;
-            }
-            
-            isDetecting = true;
-            detectFaces();
-            detectionInterval = setInterval(detectFaces, 100);
-            showToast('เริ่มระบบเช็คชื่อ', 'success');
-        }
-
-        // หยุดตรวจจับใบหน้า
-        function stopDetection() {
-            isDetecting = false;
-            if (detectionInterval) {
-                clearInterval(detectionInterval);
-            }
-            ctx.clearRect(0, 0, overlay.width, overlay.height);
-            showToast('หยุดระบบเช็คชื่อ', 'success');
-        }
-
-        // ลงทะเบียนนักเรียนใหม่
-        async function registerNewStudent() {
-            if (!modelsLoaded) {
-                showToast('กำลังโหลดโมเดล กรุณารอ', 'error');
-                return;
-            }
-
-            const studentName = prompt('กรุณากรอกชื่อ-นามสกุลนักเรียน:');
-            if (!studentName) return;
-
-            const studentClass = prompt('กรุณากรอกชั้นเรียน (เช่น ม.6/1):');
-            if (!studentClass) return;
-
-            try {
-                showToast('กำลังตรวจจับใบหน้า กรุณามองกล้อง...', 'success');
-
-                // รอให้เจอใบหน้า
-                let attempts = 0;
-                let detection = null;
-                
-                while (attempts < 10 && !detection) {
-                    detection = await faceapi
-                        .detectSingleFace(video)
-                        .withFaceLandmarks()
-                        .withFaceDescriptor();
-                    
-                    if (!detection) {
-                        await new Promise(resolve => setTimeout(resolve, 500));
+                        // แสดงผลว่าไม่พบ
+                        const matchResult = document.getElementById('faceMatchResult');
+                        document.getElementById('matchName').innerHTML = '❌ ไม่พบข้อมูลใบหน้า';
+                        document.getElementById('matchConfidence').innerHTML = 'กรุณาลงทะเบียนก่อน';
+                        document.getElementById('matchClass').innerHTML = '';
+                        matchResult.classList.add('show');
                     }
-                    attempts++;
-                }
+                })
+                .withFailureHandler((error) => {
+                    showLoading(false);
+                    showMessage('เกิดข้อผิดพลาด: ' + error, false);
+                })
+                .findStudentByFace(mockDescriptor);
+        }
 
-                if (!detection) {
-                    showToast('ไม่พบใบหน้า กรุณาลองใหม่', 'error');
-                    return;
-                }
+        // เพิ่มนักเรียนใหม่
+        function addNewStudent() {
+            const name = document.getElementById('newStudentName').value;
+            const studentClass = document.getElementById('newStudentClass').value;
+            const number = document.getElementById('newStudentNumber').value;
 
-                // สร้าง studentId อัตโนมัติ
-                const studentId = 'STU' + Date.now().toString().slice(-6);
-
-                // บันทึกไป Google Sheets
-                const faceDescriptor = Array.from(detection.descriptor);
-                
-                const response = await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: new URLSearchParams({
-                        action: 'registerFace',
-                        studentId: studentId,
-                        studentName: studentName,
-                        class: studentClass,
-                        faceDescriptor: JSON.stringify(faceDescriptor)
-                    })
-                });
-
-                // เพิ่มใน registeredFaces
-                registeredFaces.push({
-                    name: studentName,
-                    descriptor: detection.descriptor
-                });
-
-                // เพิ่มใน students array
-                students.push({
-                    id: studentId,
-                    name: studentName,
-                    class: studentClass,
-                    faceDescriptor: faceDescriptor
-                });
-
-                updateStudentList();
-                showToast(`ลงทะเบียน ${studentName} สำเร็จ`, 'success');
-
-            } catch (error) {
-                showToast('เกิดข้อผิดพลาดในการลงทะเบียน', 'error');
-                console.error(error);
+            if (!name || !studentClass || !number) {
+                showMessage('กรุณากรอกข้อมูลให้ครบถ้วน', false);
+                return;
             }
+
+            showLoading(true);
+
+            // ในระบบจริงต้องมี face descriptor จากกล้อง
+            const mockDescriptor = Array(128).fill(0).map(() => Math.random() * 2 - 1);
+
+            const studentData = {
+                name: name,
+                class: studentClass,
+                number: number,
+                descriptor: JSON.stringify(mockDescriptor),
+                faceImage: '' // อาจเก็บภาพเป็น base64
+            };
+
+            google.script.run
+                .withSuccessHandler((result) => {
+                    showLoading(false);
+                    showMessage('✅ เพิ่มนักเรียนเรียบร้อย');
+                    
+                    // เคลียร์ฟอร์ม
+                    document.getElementById('newStudentName').value = '';
+                    document.getElementById('newStudentClass').value = '';
+                    document.getElementById('newStudentNumber').value = '';
+                    
+                    // โหลดข้อมูลใหม่
+                    loadStudents();
+                })
+                .withFailureHandler((error) => {
+                    showLoading(false);
+                    showMessage('เกิดข้อผิดพลาด: ' + error, false);
+                })
+                .addStudent(studentData);
         }
 
-        // อัปเดตสถานะการเชื่อมต่อ
-        function updateSyncStatus(text) {
-            document.getElementById('statusText').textContent = text;
-        }
-
-        // โหลดโมเดลเมื่อเริ่มต้น
-        window.onload = () => {
-            loadModels();
-            startCamera();
+        // Export ข้อมูล
+        function exportData() {
+            const data = {
+                attendance: document.getElementById('attendance-body').innerText,
+                students: document.getElementById('students-body').innerText,
+                date: new Date().toLocaleString()
+            };
             
-            // กำหนดขนาด canvas เมื่อ video พร้อม
-            video.addEventListener('play', () => {
-                overlay.width = video.videoWidth;
-                overlay.height = video.videoHeight;
-            });
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `face-attendance-export-${new Date().toISOString()}.json`;
+            a.click();
+            
+            showMessage('Export ข้อมูลเรียบร้อย');
+        }
+
+        // รีเฟรชข้อมูล
+        function refreshData() {
+            showLoading(true);
+            loadAllData();
+            setTimeout(() => showLoading(false), 1000);
+            showMessage('รีเฟรชข้อมูลเรียบร้อย');
+        }
+
+        // แสดงช่วยเหลือ
+        function showHelp() {
+            alert(`วิธีการใช้งานระบบ:
+1. คลิก "ตั้งค่า Sheets" เพื่อสร้าง Sheets อัตโนมัติ
+2. คลิก "เปิดกล้อง" เพื่อใช้งานกล้อง
+3. เลือกกิจกรรมที่ต้องการ
+4. คลิก "ยืนยันตัวตน" เพื่อเช็คชื่อ
+5. เพิ่มนักเรียนใหม่ได้ในแท็บ "รายชื่อนักเรียน"
+
+หมายเหตุ: ระบบนี้ใช้ Face Descriptor จำลอง
+ในระบบจริงต้องใช้ Face API จริง`);
+        }
+
+        // โหลดข้อมูลเมื่อเริ่มต้น
+        window.onload = function() {
+            loadAllData();
+            document.getElementById('userName').textContent = 'ครูเอ็ม เม็ดเตม (administrator)';
         };
     </script>
 </body>
