@@ -3,84 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI FaceID Professional - NextGen</title>
+    <title>FaceID Pro V3 - Smart Thresholds</title>
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@200;400;600&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #00d2ff; --success: #00ff88; --danger: #ff0055; --dark-bg: #0f172a; }
-        body { font-family: 'Kanit', sans-serif; background: var(--dark-bg); color: #fff; margin: 0; padding: 20px; overflow-x: hidden; }
+        :root { --primary: #00d2ff; --success: #00ff88; --danger: #ff0055; --warning: #ffb100; --dark-bg: #0f172a; }
+        body { font-family: 'Kanit', sans-serif; background: var(--dark-bg); color: #fff; margin: 0; padding: 20px; }
         
-        /* Dashboard Stats */
-        .dashboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 1200px; margin: 0 auto 30px; }
-        .stat-card { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); text-align: center; backdrop-filter: blur(10px); }
-        .stat-card h3 { margin: 0; font-size: 14px; color: var(--primary); font-family: 'Orbitron'; letter-spacing: 2px; }
-        .stat-card .value { font-size: 38px; font-weight: 700; margin-top: 10px; font-family: 'Orbitron'; }
+        /* Dashboard */
+        .dashboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 1200px; margin: 0 auto 25px; }
+        .stat-card { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); text-align: center; backdrop-filter: blur(10px); }
+        .stat-card h3 { margin: 0; font-size: 12px; color: var(--primary); font-family: 'Orbitron'; letter-spacing: 1px; }
+        .stat-card .value { font-size: 30px; font-weight: 700; margin-top: 5px; font-family: 'Orbitron'; }
 
-        /* Main Grid */
-        .main-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 30px; max-width: 1300px; margin: 0 auto; }
+        /* Layout */
+        .main-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 25px; max-width: 1300px; margin: 0 auto; }
         
-        /* Video & HUD */
-        .video-container { position: relative; border-radius: 24px; overflow: hidden; border: 2px solid rgba(0, 210, 255, 0.3); box-shadow: 0 0 50px rgba(0, 210, 255, 0.1); line-height: 0; }
+        /* Video Section */
+        .video-box { position: relative; border-radius: 20px; overflow: hidden; border: 2px solid rgba(0, 210, 255, 0.2); background: #000; line-height: 0; }
         video { width: 100%; height: auto; transform: scaleX(-1); }
         canvas { position: absolute; top: 0; left: 0; }
 
-        /* Scanning HUD Overlay */
-        .hud-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; border: 2px solid transparent; transition: 0.3s; }
-        .scan-line { position: absolute; width: 100%; height: 2px; background: linear-gradient(to right, transparent, var(--primary), transparent); top: 0; animation: scan 3s linear infinite; display: none; }
-        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
-        .shutter-flash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #fff; opacity: 0; transition: 0.2s; pointer-events: none; }
+        /* Quality Indicator */
+        .quality-meter { margin-top: 10px; background: #1e293b; height: 10px; border-radius: 5px; overflow: hidden; position: relative; }
+        #quality-bar { width: 0%; height: 100%; background: var(--danger); transition: 0.3s; }
 
-        /* Registration Form */
-        .reg-card { background: rgba(255,255,255,0.05); padding: 25px; border-radius: 24px; backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); }
-        .btn { width: 100%; padding: 15px; border: none; border-radius: 12px; font-family: 'Kanit'; font-weight: 600; cursor: pointer; transition: 0.3s; margin-top: 10px; font-size: 16px; }
-        .btn-primary { background: var(--primary); color: #000; }
-        .btn-primary:hover { transform: scale(1.02); box-shadow: 0 0 20px var(--primary); }
-        .btn-success { background: var(--success); color: #000; }
-        .btn-success:disabled { background: #334155; color: #94a3b8; }
+        /* Form & List */
+        .panel { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); }
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 10px; font-family: 'Kanit'; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+        .btn-scan { background: var(--primary); color: #000; font-family: 'Orbitron'; font-size: 14px; }
+        .btn-reg { background: var(--success); color: #000; font-size: 16px; }
+        .btn-reg:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
 
-        input { width: calc(100% - 30px); padding: 15px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; color: #fff; font-family: 'Kanit'; margin-bottom: 15px; }
+        input { width: calc(100% - 30px); padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: #fff; font-family: 'Kanit'; margin-bottom: 10px; outline: none; }
         
-        /* Attendance List */
-        .list-box { max-height: 400px; overflow-y: auto; margin-top: 20px; }
-        .user-row { display: flex; align-items: center; padding: 12px; background: rgba(255,255,255,0.03); margin-bottom: 8px; border-radius: 15px; border-left: 4px solid var(--primary); }
-        .user-row.present { border-left-color: var(--success); background: rgba(0, 255, 136, 0.1); }
+        .list-box { max-height: 350px; overflow-y: auto; margin-top: 15px; }
+        .row { display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.03); margin-bottom: 8px; border-radius: 10px; border-left: 4px solid var(--primary); font-size: 14px; }
+        .row.present { border-left-color: var(--success); }
 
-        .status-badge { padding: 5px 15px; border-radius: 30px; font-size: 12px; font-weight: 600; display: inline-block; margin-bottom: 15px; font-family: 'Orbitron'; }
+        .status-pill { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; display: inline-block; margin-bottom: 10px; font-family: 'Orbitron'; }
         .bg-wait { background: #334155; color: #94a3b8; }
-        .bg-ready { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); }
+        .bg-ready { background: var(--primary); color: #000; box-shadow: 0 0 10px var(--primary); }
     </style>
 </head>
 <body>
 
-    <h2 style="text-align: center; font-family: 'Orbitron'; letter-spacing: 5px; color: var(--primary);">SYSTEM: FACE_ID_V3</h2>
+    <h3 style="text-align: center; font-family: 'Orbitron'; letter-spacing: 3px; color: var(--primary);">FACE_ID_PRO : THRESHOLD_V3</h3>
 
     <div class="dashboard">
-        <div class="stat-card"><h3>TOTAL_USERS</h3><div class="value" id="stat-total">0</div></div>
-        <div class="stat-card"><h3>PRESENT</h3><div class="value" id="stat-present" style="color:var(--success)">0</div></div>
+        <div class="stat-card"><h3>TOTAL_MEMBERS</h3><div class="value" id="stat-total">0</div></div>
+        <div class="stat-card"><h3>PRESENT_TODAY</h3><div class="value" id="stat-present" style="color:var(--success)">0</div></div>
         <div class="stat-card"><h3>ABSENT</h3><div class="value" id="stat-absent" style="color:var(--danger)">0</div></div>
     </div>
 
     <div class="main-grid">
-        <!-- Section: กล้อง -->
+        <!-- 🎥 กล้องและตัววัดคุณภาพ -->
         <div>
-            <div id="sys-status" class="status-badge bg-wait">INITIALIZING...</div>
-            <div class="video-container" id="video-box">
+            <div id="sys-status" class="status-pill bg-wait">LOADING_AI_MODELS...</div>
+            <div class="video-box" id="video-container">
                 <video id="video" autoplay muted></video>
-                <div id="hud-line" class="scan-line"></div>
-                <div id="flash" class="shutter-flash"></div>
-                <!-- Canvas drawing will be here -->
             </div>
-            <button class="btn btn-primary" style="font-family: 'Orbitron';" onclick="startScanMode()">START_AUTOMATIC_SCAN</button>
+            <div class="quality-meter">
+                <div id="quality-bar"></div>
+            </div>
+            <div id="quality-text" style="font-size: 12px; margin-top: 5px; color: var(--danger);">FACE QUALITY: 0% (LOW)</div>
+            
+            <button class="btn btn-scan" onclick="startRecognition()">▶ START_AUTO_SCAN_MODE</button>
         </div>
 
-        <!-- Section: ลงทะเบียน & รายชื่อ -->
-        <div class="reg-card">
-            <h3 style="margin-top:0; font-family: 'Orbitron'; font-size: 16px; color: var(--primary);">REGISTRATION_UNIT</h3>
-            <input type="text" id="regName" placeholder="ENTER_FULL_NAME">
-            <div id="face-score" style="font-size: 12px; margin-bottom: 10px; color: #94a3b8;">QUALITY: 0%</div>
-            <button id="regBtn" class="btn btn-success" onclick="registerFace()" disabled>CAPTURE_FACE</button>
+        <!-- 📋 ลงทะเบียนและประวัติ -->
+        <div class="panel">
+            <h4 style="margin: 0 0 10px 0; font-family: 'Orbitron'; font-size: 14px; color: var(--primary);">REGISTER_UNIT</h4>
+            <input type="text" id="regName" placeholder="ENTER_NAME_HERE">
+            <button id="regBtn" class="btn btn-reg" onclick="registerFace()" disabled>CAPTURE_FACE (REQUIRES 85%)</button>
             
-            <h3 style="margin: 30px 0 10px 0; font-family: 'Orbitron'; font-size: 14px;">LIVE_FEED_LOG</h3>
+            <h4 style="margin: 25px 0 10px 0; font-family: 'Orbitron'; font-size: 14px;">ATTENDANCE_LOG</h4>
             <div id="attendance-list" class="list-box"></div>
         </div>
     </div>
@@ -89,10 +86,15 @@
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzh2ytLQUMlnBlekS2W1fX-bKHQJgRjCSLXDtiMpvLHDrqcbK8MlKMPtD6qu3ux-8X5/exec";
     const MODEL_URL = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
 
+    // *** ตั้งค่า THRESHOLDS (เกณฑ์แนะนำ) ***
+    const THRESHOLD_REG = 0.85; // 85% สำหรับลงทะเบียน
+    const THRESHOLD_SCAN = 0.75; // 75% สำหรับเช็คชื่อ
+    const MATCH_ACCURACY = 0.6; // ความแม่นยำในการเปรียบเทียบ (ยิ่งน้อยยิ่งเข้มงวด)
+
     let registeredUsers = [];
     let isBlinked = false;
     let faceMatcher;
-    let currentlyCheckedIn = ""; // เก็บชื่อคนที่เพิ่งเช็คสำเร็จ
+    let verifiedName = ""; 
 
     window.onload = async () => {
         try {
@@ -106,57 +108,70 @@
             
             await refreshData();
             document.getElementById('sys-status').innerText = "SYSTEM_READY";
-            document.getElementById('sys-status').className = "status-badge bg-ready";
+            document.getElementById('sys-status').className = "status-pill bg-ready";
             
-            runRegistrationCheck();
-        } catch (e) { alert("Error: " + e.message); }
+            monitorFaceQuality(); // เริ่มตรวจสอบคุณภาพใบหน้าแบบเรียลไทม์
+        } catch (e) { alert("Camera Access Error: " + e.message); }
     };
 
-    // --- ลูกเล่น: ตรวจสอบความพร้อมของใบหน้าก่อนลงทะเบียน ---
-    async function runRegistrationCheck() {
+    // --- ตรวจสอบคุณภาพใบหน้าแบบ Real-time ---
+    async function monitorFaceQuality() {
         const video = document.getElementById('video');
+        const bar = document.getElementById('quality-bar');
+        const text = document.getElementById('quality-text');
+        const btn = document.getElementById('regBtn');
+
         setInterval(async () => {
-            const det = await faceapi.detectSingleFace(video).withFaceLandmarks();
-            const btn = document.getElementById('regBtn');
-            const scoreDisp = document.getElementById('face-score');
+            const det = await faceapi.detectSingleFace(video);
             
             if (det) {
-                const score = Math.round(det.detection.score * 100);
-                scoreDisp.innerText = `QUALITY: ${score}% - READY`;
-                scoreDisp.style.color = "var(--success)";
-                btn.disabled = false;
+                const score = det.score;
+                const scorePercent = Math.round(score * 100);
+                
+                bar.style.width = scorePercent + "%";
+                text.innerText = `FACE QUALITY: ${scorePercent}%`;
+
+                if (score >= THRESHOLD_REG) {
+                    bar.style.background = "var(--success)";
+                    text.style.color = "var(--success)";
+                    btn.disabled = false;
+                    btn.innerText = "CAPTURE_FACE (READY)";
+                } else {
+                    bar.style.background = "var(--warning)";
+                    text.style.color = "var(--warning)";
+                    btn.disabled = true;
+                    btn.innerText = `CAPTURE_FACE (${scorePercent}% < 85%)`;
+                }
             } else {
-                scoreDisp.innerText = `QUALITY: 0% - NO_FACE_DETECTED`;
-                scoreDisp.style.color = "var(--danger)";
+                bar.style.width = "0%";
+                text.innerText = "FACE QUALITY: 0% (NOT DETECTED)";
+                text.style.color = "var(--danger)";
                 btn.disabled = true;
             }
-        }, 800);
+        }, 500);
     }
 
-    // --- ฟังก์ชันสแกนชื่อ (Dynamic Frame Color) ---
-    async function startScanMode() {
-        if(registeredUsers.length === 0) return alert("No Data Found.");
+    // --- โหมดสแกนใบหน้า (ใช้เกณฑ์ 75% กรองคุณภาพ) ---
+    async function startRecognition() {
+        if(registeredUsers.length === 0) return alert("ยังไม่มีข้อมูลสมาชิก");
         
-        document.getElementById('hud-line').style.display = "block";
-        document.getElementById('sys-status').innerText = "LOADING_DESCRIPTORS...";
+        document.getElementById('sys-status').innerText = "SCANNING_MODE: ACTIVE";
 
         const labeledDescriptors = await Promise.all(registeredUsers.map(async u => {
             try {
                 const img = await faceapi.fetchImage(`https://lh3.googleusercontent.com/d/${u[1]}`);
-                const det = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
-                return new faceapi.LabeledFaceDescriptors(u[0], [det.descriptor]);
+                const d = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+                return new faceapi.LabeledFaceDescriptors(u[0], [d.descriptor]);
             } catch(e) { return null; }
         }));
 
-        faceMatcher = new faceapi.FaceMatcher(labeledDescriptors.filter(d => d), 0.6);
+        faceMatcher = new faceapi.FaceMatcher(labeledDescriptors.filter(d => d), MATCH_ACCURACY);
         
         const video = document.getElementById('video');
         const canvas = faceapi.createCanvasFromMedia(video);
-        document.getElementById('video-box').append(canvas);
+        document.getElementById('video-container').append(canvas);
         const displaySize = { width: video.offsetWidth, height: video.offsetHeight };
         faceapi.matchDimensions(canvas, displaySize);
-
-        document.getElementById('sys-status').innerText = "SCANNING: BLINK_TO_VERIFY";
 
         setInterval(async () => {
             const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
@@ -164,56 +179,47 @@
             canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
 
             resized.forEach(d => {
-                const match = faceMatcher.findBestMatch(d.descriptor);
-                
-                // Mirror Text Fix
                 const box = d.detection.box;
                 const flippedBox = { x: displaySize.width - box.x - box.width, y: box.y, width: box.width, height: box.height };
                 
-                // --- ลูกเล่น: เปลี่ยนสีกรอบเป็นเขียวถ้าเช็คสำเร็จ ---
-                let boxColor = "#00d2ff"; // สีฟ้าปกติ
-                if (currentlyCheckedIn === match.label) {
-                    boxColor = "#00ff88"; // สีเขียวเมื่อผ่าน
+                // --- ตรวจสอบเกณฑ์ 75% ก่อนสแกนหาชื่อ ---
+                if (d.detection.score < THRESHOLD_SCAN) {
+                    new faceapi.draw.DrawBox(flippedBox, { label: "LOW_QUALITY", boxColor: "red" }).draw(canvas);
+                    return; 
                 }
 
-                const drawOptions = { label: match.toString(), boxColor: boxColor };
-                new faceapi.draw.DrawBox(flippedBox, drawOptions).draw(canvas);
+                const match = faceMatcher.findBestMatch(d.descriptor);
+                let color = (verifiedName === match.label) ? "#00ff88" : "#00d2ff";
 
-                // Blink Detection
-                const ear = Math.abs(d.landmarks.getLeftEye()[1].y - d.landmarks.getLeftEye()[5].y);
-                if (ear < 3.0 && match.label !== 'unknown') {
+                new faceapi.draw.DrawBox(flippedBox, { label: match.toString(), boxColor: color }).draw(canvas);
+
+                // ตรวจจับการกระพริบตา (Blink Detection)
+                const landmarks = d.landmarks;
+                const leftEye = landmarks.getLeftEye();
+                const ear = Math.abs(leftEye[1].y - leftEye[5].y);
+
+                if (ear < 3.2 && match.label !== 'unknown') {
                     isBlinked = true;
-                    handleAttendance(match.label);
+                    handleCheckIn(match.label);
                 }
             });
         }, 100);
     }
 
-    async function handleAttendance(name) {
-        if (currentlyCheckedIn === name || !isBlinked) return;
-        currentlyCheckedIn = name;
+    async function handleCheckIn(name) {
+        if (verifiedName === name || !isBlinked) return;
+        verifiedName = name;
         
         document.getElementById('sys-status').innerText = "VERIFIED: " + name;
         await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'checkin', name: name }) });
         
         await refreshData();
-        // รอ 5 วินาทีให้กรอบเป็นสีเขียวค้างไว้ แล้วค่อยรีเซ็ตเป็นสีฟ้า
-        setTimeout(() => { 
-            currentlyCheckedIn = ""; 
-            isBlinked = false; 
-            document.getElementById('sys-status').innerText = "SCANNING: BLINK_TO_VERIFY"; 
-        }, 5000);
+        setTimeout(() => { verifiedName = ""; isBlinked = false; document.getElementById('sys-status').innerText = "SCANNING_MODE: ACTIVE"; }, 5000);
     }
 
-    // --- ลูกเล่น: ลงทะเบียนแบบมี Shutter Flash ---
     async function registerFace() {
         const name = document.getElementById('regName').value;
-        if(!name) return alert("Please enter name.");
-
-        // Flash Effect
-        const flash = document.getElementById('flash');
-        flash.style.opacity = "1";
-        setTimeout(() => flash.style.opacity = "0", 200);
+        if(!name) return alert("กรุณาใส่ชื่อ");
 
         const video = document.getElementById('video');
         const canvas = document.createElement('canvas');
@@ -221,7 +227,7 @@
         canvas.getContext('2d').drawImage(video, 0, 0);
         const base64 = canvas.toDataURL('image/jpeg').split(',')[1];
 
-        document.getElementById('sys-status').innerText = "UPLOADING_ENCRYPTION...";
+        document.getElementById('sys-status').innerText = "UPLOADING_ENCRYPTED_FACE...";
         await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'register', name: name, image: base64 }) });
         
         alert("Face Registered Successfully!");
@@ -231,26 +237,26 @@
     }
 
     async function refreshData() {
-        const [uRes, dRes, aRes] = await Promise.all([
-            fetch(SCRIPT_URL),
-            fetch(SCRIPT_URL + "?type=dashboard"),
-            fetch(SCRIPT_URL + "?type=attendance")
-        ]);
+        try {
+            const [uRes, dRes, aRes] = await Promise.all([
+                fetch(SCRIPT_URL),
+                fetch(SCRIPT_URL + "?type=dashboard"),
+                fetch(SCRIPT_URL + "?type=attendance")
+            ]);
+            registeredUsers = await uRes.json();
+            const dash = await dRes.json();
+            const history = await aRes.json();
 
-        registeredUsers = await uRes.json();
-        const dash = await dRes.json();
-        const history = await aRes.json();
-
-        document.getElementById('stat-total').innerText = dash.total;
-        document.getElementById('stat-present').innerText = dash.present;
-        document.getElementById('stat-absent').innerText = dash.absent;
-
-        document.getElementById('attendance-list').innerHTML = history.map(h => `
-            <div class="user-row present">
-                <div style="font-size:13px; font-weight:600;">${h[0]}</div>
-                <div style="margin-left:auto; font-size:11px; font-family:'Orbitron'; color:var(--primary);">${new Date(h[1]).toLocaleTimeString('th-TH')}</div>
-            </div>
-        `).join('');
+            document.getElementById('stat-total').innerText = dash.total;
+            document.getElementById('stat-present').innerText = dash.present;
+            document.getElementById('stat-absent').innerText = dash.absent;
+            document.getElementById('attendance-list').innerHTML = history.map(h => `
+                <div class="row present">
+                    <div style="font-weight:600;">${h[0]}</div>
+                    <div style="margin-left:auto; font-size:10px; font-family:'Orbitron'; color:var(--primary);">${new Date(h[1]).toLocaleTimeString('th-TH')}</div>
+                </div>
+            `).join('');
+        } catch(e) { console.error("Data Sync Error"); }
     }
 </script>
 </body>
