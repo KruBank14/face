@@ -4,33 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Face Check-in System</title>
-    <!-- โหลด face-api.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <!-- 1. โหลด Library โดยเอา defer ออกเพื่อให้โหลดเสร็จก่อนเริ่มรันโค้ด -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <style>
-        body { font-family: 'Kanit', sans-serif; background-color: #f0f2f5; text-align: center; margin: 0; padding: 20px; }
-        h1 { color: #1a73e8; }
+        body { font-family: 'Tahoma', sans-serif; background-color: #f0f2f5; text-align: center; margin: 0; padding: 20px; }
         .main-container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         video { width: 100%; border-radius: 10px; background: #000; }
         .status-bar { margin: 15px 0; padding: 10px; border-radius: 5px; background: #e8f0fe; color: #1967d2; font-weight: bold; }
         .input-group { margin: 20px 0; display: flex; gap: 10px; justify-content: center; }
         input { padding: 10px; border: 1px solid #ccc; border-radius: 5px; width: 60%; }
-        button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
         .btn-reg { background: #1a73e8; color: white; }
-        .btn-reg:hover { background: #1557b0; }
-        .btn-scan { background: #34a853; color: white; width: 100%; font-size: 18px; }
-        .btn-scan:hover { background: #2d8e47; }
-        #overlay { position: absolute; top: 0; left: 0; }
-        .video-wrapper { position: relative; }
+        .btn-scan { background: #34a853; color: white; width: 100%; font-size: 18px; margin-top: 10px; }
     </style>
 </head>
 <body>
 
     <div class="main-container">
         <h1>📸 ระบบเช็คชื่อด้วยใบหน้า</h1>
-        <div id="status" class="status-bar">กำลังโหลดโมเดล AI...</div>
+        <div id="status" class="status-bar">กำลังโหลด Library...</div>
 
         <div class="video-wrapper">
-            <video id="video" autoplay muted></video>
+            <video id="video" width="480" height="360" autoplay muted></video>
         </div>
 
         <div class="input-group">
@@ -44,15 +39,20 @@
     <script>
         const video = document.getElementById('video');
         const statusText = document.getElementById('status');
-        
-        // URL ของคุณที่ให้มา
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzh2ytLQUMlnBlekS2W1fX-bKHQJgRjCSLXDtiMpvLHDrqcbK8MlKMPtD6qu3ux-8X5/exec";
-        
-        // แหล่งเก็บไฟล์ Model AI
         const MODEL_URL = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
 
-        // 1. เริ่มต้นโหลด Model และเปิดกล้อง
+        // 2. ใช้ window.onload เพื่อให้มั่นใจว่า faceapi ถูกโหลดเข้ามาใน Browser แล้ว
+        window.onload = async function() {
+            if (typeof faceapi === "undefined") {
+                statusText.innerText = "Error: โหลด Library ไม่สำเร็จ กรุณารีเฟรชหน้าจอ";
+                return;
+            }
+            await startSystem();
+        };
+
         async function startSystem() {
+            statusText.innerText = "กำลังโหลด Model AI...";
             try {
                 await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
                 await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
@@ -62,59 +62,45 @@
                 video.srcObject = stream;
                 statusText.innerText = "ระบบพร้อมใช้งาน";
             } catch (err) {
-                statusText.innerText = "ข้อผิดพลาด: ไม่สามารถเข้าถึงกล้องได้";
+                statusText.innerText = "ไม่สามารถเข้าถึงกล้องได้";
                 console.error(err);
             }
         }
-        startSystem();
 
-        // 2. ฟังก์ชันลงทะเบียน (ถ่ายรูปส่งไป Google Drive + บันทึกชื่อลง Sheet)
         async function register() {
             const name = document.getElementById('userName').value;
-            if (!name) return alert("กรุณาใส่ชื่อก่อนครับ");
+            if (!name) return alert("กรุณาใส่ชื่อ");
 
             statusText.innerText = "กำลังตรวจจับใบหน้า...";
             const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
             
-            if (!detection) {
-                alert("ไม่พบใบหน้า กรุณาจัดหน้าให้อยู่กลางกล้อง");
-                return;
-            }
+            if (!detection) return alert("ไม่พบใบหน้า กรุณาจัดหน้าให้อยู่กลางกล้อง");
 
-            statusText.innerText = "กำลังอัปโหลดรูปภาพ...";
-            
+            statusText.innerText = "กำลังอัปโหลด...";
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             canvas.getContext('2d').drawImage(video, 0, 0);
             const base64Image = canvas.toDataURL('image/jpeg').split(',')[1];
 
-            try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'register', name: name, image: base64Image })
-                });
-                alert("ลงทะเบียนคุณ " + name + " สำเร็จ!");
-                document.getElementById('userName').value = "";
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'register', name: name, image: base64Image })
+            })
+            .then(() => {
+                alert("ลงทะเบียนสำเร็จ!");
                 statusText.innerText = "พร้อมใช้งาน";
-            } catch (err) {
-                alert("เกิดข้อผิดพลาดในการเชื่อมต่อ Google Script");
-            }
+            })
+            .catch(() => alert("เกิดข้อผิดพลาด"));
         }
 
-        // 3. ฟังก์ชันเช็คชื่ออัตโนมัติ
         async function startAttendance() {
-            statusText.innerText = "กำลังโหลดฐานข้อมูลใบหน้า...";
-            
+            statusText.innerText = "กำลังดึงข้อมูลใบหน้าจาก Cloud...";
             try {
-                // ดึงข้อมูล User ทั้งหมดจาก Google Script (doGet)
                 const res = await fetch(SCRIPT_URL);
                 const users = await res.json();
 
-                if (users.length === 0) {
-                    alert("ยังไม่มีข้อมูลในฐานข้อมูล กรุณาลงทะเบียนก่อน");
-                    return;
-                }
+                if (users.length === 0) return alert("ยังไม่มีใครลงทะเบียน");
 
                 const labeledDescriptors = await Promise.all(users.map(async user => {
                     const name = user[0];
@@ -126,37 +112,29 @@
                 }));
 
                 const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
-                statusText.innerText = "โหมดเช็คชื่อ: กำลังสแกน...";
+                statusText.innerText = "โหมดเช็คชื่อ: ทำงาน";
 
                 setInterval(async () => {
                     const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
-                    
-                    detections.forEach(async fd => {
+                    detections.forEach(fd => {
                         const match = faceMatcher.findBestMatch(fd.descriptor);
                         if (match.label !== 'unknown') {
-                            statusText.innerText = "พบคุณ: " + match.label + " (บันทึกเวลาแล้ว)";
+                            statusText.innerText = "เช็คชื่อสำเร็จ: " + match.label;
                             sendCheckIn(match.label);
                         }
                     });
                 }, 3000);
-
-            } catch (err) {
-                console.error(err);
-                alert("ไม่สามารถโหลดฐานข้อมูลได้");
-            }
+            } catch (err) { alert("โหลดข้อมูลไม่สำเร็จ"); }
         }
 
         let lastChecked = "";
-        async function sendCheckIn(name) {
+        function sendCheckIn(name) {
             if (lastChecked === name) return;
             lastChecked = name;
-
-            await fetch(SCRIPT_URL, {
+            fetch(SCRIPT_URL, {
                 method: 'POST',
                 body: JSON.stringify({ action: 'checkin', name: name })
             });
-
-            // ป้องกันการบันทึกซ้ำซ้อนภายใน 10 วินาที
             setTimeout(() => { lastChecked = ""; }, 10000);
         }
     </script>
