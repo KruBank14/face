@@ -4,10 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบเช็คชื่อ & แดชบอร์ด</title>
-    <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Chart.js สำหรับทำกราฟ -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.2.1/dist/chartjs-plugin-annotation.min.js"></script>
     <style>
         body { background-color: #f4f7f6; font-family: 'Sarabun', sans-serif; }
         .nav-tabs .nav-link { font-weight: bold; color: #495057; }
@@ -19,21 +18,44 @@
         .bg-late { background-color: #fd7e14; }
         .loading { display: none; text-align: center; margin: 30px 0; }
         
-        /* สไตล์ปุ่มเช็คชื่อ */
         .radio-group input[type="radio"] { display: none; }
         .radio-group label { padding: 5px 15px; border-radius: 20px; border: 1px solid #ccc; cursor: pointer; margin-right: 5px; font-size: 14px; }
         .radio-group input[value="มา"]:checked + label { background-color: #198754; color: white; border-color: #198754; }
         .radio-group input[value="ขาด"]:checked + label { background-color: #dc3545; color: white; border-color: #dc3545; }
         .radio-group input[value="ลา"]:checked + label { background-color: #ffc107; color: black; border-color: #ffc107; }
         .radio-group input[value="สาย"]:checked + label { background-color: #fd7e14; color: white; border-color: #fd7e14; }
+
+        /* Toast สำหรับแจ้งเตือน */
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
+        .custom-toast {
+            min-width: 300px; padding: 16px 20px; border-radius: 10px;
+            color: white; font-weight: 500; box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            display: flex; align-items: center; gap: 10px;
+            animation: slideIn 0.4s ease-out;
+        }
+        .custom-toast.success { background: linear-gradient(135deg, #198754, #157347); }
+        .custom-toast.error { background: linear-gradient(135deg, #dc3545, #b02a37); }
+        .custom-toast.warning { background: linear-gradient(135deg, #fd7e14, #e06b0a); }
+        .custom-toast .toast-icon { font-size: 20px; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+
+        /* ปุ่ม disabled */
+        .btn:disabled { opacity: 0.7; cursor: not-allowed; }
+
+        /* Dashboard date selector */
+        .dash-date-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .dash-date-group select { max-width: 220px; }
     </style>
 </head>
 <body>
 
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
 <div class="container mt-4 mb-5">
     <h3 class="text-center mb-4">🏫 ระบบบริหารจัดการชั้นเรียน</h3>
 
-    <!-- แถบเมนูนำทาง (Tabs) -->
     <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance" type="button" role="tab">📝 เช็คชื่อประจำวัน</button>
@@ -43,7 +65,6 @@
         </li>
     </ul>
 
-    <!-- ตัวเลือกห้องเรียน (ใช้ร่วมกันทั้ง 2 หน้า) -->
     <div class="card shadow-sm mb-4">
         <div class="card-body row align-items-center">
             <div class="col-md-6">
@@ -60,7 +81,6 @@
         </div>
     </div>
 
-    <!-- ส่วนเนื้อหา (Tab Content) -->
     <div class="tab-content" id="myTabContent">
         
         <!-- ========================================== -->
@@ -82,7 +102,12 @@
                             </thead>
                             <tbody id="studentList"></tbody>
                         </table>
-                        <button class="btn btn-primary btn-lg w-100" onclick="saveData()">💾 บันทึกการเช็คชื่อ</button>
+                        <button class="btn btn-primary btn-lg w-100" id="saveBtn" onclick="saveData()">
+                            <span id="saveBtnText">💾 บันทึกการเช็คชื่อ</span>
+                            <span id="saveBtnLoading" style="display:none;">
+                                <span class="spinner-border spinner-border-sm" role="status"></span> กำลังบันทึก...
+                            </span>
+                        </button>
                     </div>
                     <div id="emptyMessage1" class="text-center text-muted my-5">กรุณาเลือกห้องเรียนเพื่อเช็คชื่อ</div>
                 </div>
@@ -94,6 +119,20 @@
         <!-- ========================================== -->
         <div class="tab-pane fade" id="dashboard" role="tabpanel">
             <div id="dashboardContent" style="display: none;">
+                
+                <!-- ข้อ 2: ตัวเลือกวันที่ในแดชบอร์ด -->
+                <div class="card shadow-sm mb-3">
+                    <div class="card-body">
+                        <div class="dash-date-group">
+                            <label class="form-label fw-bold mb-0">📅 ดูสถิติวันที่:</label>
+                            <select id="dashDateSelect" class="form-select border-primary">
+                                <option value="">-- เลือกวันที่ --</option>
+                            </select>
+                            <span class="badge bg-info text-dark" id="dashDateHint">กำลังโหลด...</span>
+                        </div>
+                    </div>
+                </div>
+
                 <h5 class="mb-3 text-secondary" id="dashboardTitle">สรุปสถิติประจำวัน: </h5>
                 
                 <!-- KPI Cards -->
@@ -105,16 +144,14 @@
                 </div>
 
                 <div class="row">
-                    <!-- กราฟโดนัท (วันนี้) -->
                     <div class="col-md-5 mb-4">
                         <div class="card shadow-sm h-100">
                             <div class="card-body">
-                                <h6 class="card-title text-center">สัดส่วนการมาเรียนวันนี้</h6>
+                                <h6 class="card-title text-center">สัดส่วนการมาเรียน</h6>
                                 <canvas id="donutChart"></canvas>
                             </div>
                         </div>
                     </div>
-                    <!-- ตารางเฝ้าระวังเด็กขาดบ่อย -->
                     <div class="col-md-7 mb-4">
                         <div class="card shadow-sm h-100 border-danger">
                             <div class="card-header bg-danger text-white">⚠️ นักเรียนที่ต้องติดตาม (ขาดบ่อยสุดเทอมนี้)</div>
@@ -128,10 +165,10 @@
                     </div>
                 </div>
                 
-                <!-- กราฟแท่งแนวโน้ม -->
+                <!-- กราฟแท่งแนวโน้ม + เส้น reference -->
                 <div class="card shadow-sm mb-4">
                     <div class="card-body">
-                        <h6 class="card-title text-center">แนวโน้มการมาเรียน (7 วันล่าสุด)</h6>
+                        <h6 class="card-title text-center">แนวโน้มการมาเรียน (7 วันล่าสุดนับจากวันที่เลือก)</h6>
                         <canvas id="barChart" height="100"></canvas>
                     </div>
                 </div>
@@ -143,17 +180,75 @@
     </div>
 </div>
 
-<!-- Bootstrap Bundle JS (สำหรับ Tabs) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbw7lWAsb-0G8PWefXxL0kXe_b1wxAvo88CV79uEP-Imir0K_d8GR4vzLVt3Hy6buAVK/exec"; // <--- ใส่ Web App URL ที่ Deploy ล่าสุด
+    const API_URL = "https://script.google.com/macros/s/AKfycbw7lWAsb-0G8PWefXxL0kXe_b1wxAvo88CV79uEP-Imir0K_d8GR4vzLVt3Hy6buAVK/exec";
 
     let myDonutChart = null;
     let myBarChart = null;
+    let cachedDashboardData = null; // เก็บ cache ข้อมูล dashboard ที่ server ส่งมา
 
     document.getElementById('dateInput').valueAsDate = new Date();
 
+    // ==========================================
+    // Toast แจ้งเตือน (แทน alert)
+    // ==========================================
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toastContainer');
+        const icons = { success: '✅', error: '❌', warning: '⚠️' };
+        const toast = document.createElement('div');
+        toast.className = `custom-toast ${type}`;
+        toast.innerHTML = `<span class="toast-icon">${icons[type] || '📢'}</span><span>${message}</span>`;
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.4s ease-in forwards';
+            setTimeout(() => toast.remove(), 400);
+        }, 3000);
+    }
+
+    // ==========================================
+    // Confirm Dialog สำหรับเขียนทับ (ข้อ 4)
+    // ==========================================
+    function confirmOverwrite(dateStr) {
+        return new Promise(resolve => {
+            const modal = document.createElement('div');
+            modal.innerHTML = `
+                <div class="modal fade" tabindex="-1" id="confirmModal">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header bg-warning">
+                                <h5 class="modal-title">⚠️ พบข้อมูลเดิม</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>วันที่ <strong>${dateStr}</strong> มีการบันทึกข้อมูลเช็คชื่อแล้ว</p>
+                                <p>คุณต้องการ <span class="text-danger fw-bold">เขียนทับ</span> ข้อมูลเดิมหรือไม่?</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="confirmNo">ยกเลิก</button>
+                                <button type="button" class="btn btn-danger" id="confirmYes">🔄 เขียนทับ</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+            const bsModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+            
+            document.getElementById('confirmYes').onclick = () => { bsModal.hide(); resolve(true); };
+            document.getElementById('confirmNo').onclick = () => { resolve(false); };
+            document.getElementById('confirmModal').addEventListener('hidden.bs.modal', () => {
+                modal.remove();
+                resolve(false);
+            });
+            bsModal.show();
+        });
+    }
+
+    // ==========================================
+    // API Helper
+    // ==========================================
     async function fetchAPI(payload) {
         try {
             const response = await fetch(API_URL, {
@@ -164,11 +259,14 @@
             return await response.json();
         } catch (error) {
             console.error(error);
-            alert("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้"); return null;
+            showToast("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้", "error");
+            return null;
         }
     }
 
-    // โหลดรายชื่อห้องเรียนตอนเปิดเว็บ
+    // ==========================================
+    // โหลดข้อมูลตอนเปิดเว็บ
+    // ==========================================
     window.onload = async function() {
         showLoading();
         const res = await fetchAPI({ action: "getConfigAndStudents", className: "" });
@@ -180,7 +278,9 @@
         }
     };
 
-    // เมื่อเลือกห้องเรียน ให้โหลดข้อมูลทั้ง 2 หน้า
+    // ==========================================
+    // เมื่อเลือกห้องเรียน
+    // ==========================================
     document.getElementById("classSelect").addEventListener("change", async function() {
         const className = this.value;
         if (!className) {
@@ -200,15 +300,173 @@
         const res1 = await fetchAPI({ action: "getConfigAndStudents", className: className });
         if (res1 && res1.status === "success") renderAttendanceTable(res1.students);
 
-        // โหลดหน้าแดชบอร์ด
+        // ข้อ 3: โหลดหน้าแดชบอร์ด (ตอนนี้ server คำนวณสถิติมาให้แล้ว)
         const res2 = await fetchAPI({ action: "getDashboardData", className: className });
-        if (res2 && res2.status === "success") processDashboard(res2.headers, res2.rows);
+        if (res2 && res2.status === "success") {
+            cachedDashboardData = res2;
+            populateDashDateSelector(res2);
+            renderDashboard(res2, null); // null = ใช้วันล่าสุด
+        }
         
         hideLoading();
     });
 
     // ==========================================
-    // ฟังก์ชันวาดตารางเช็คชื่อ (เหมือนเดิม)
+    // ข้อ 2: ตัวเลือกวันที่ Dashboard
+    // ==========================================
+    function populateDashDateSelector(data) {
+        const select = document.getElementById("dashDateSelect");
+        select.innerHTML = '';
+        
+        if (!data.availableDates || data.availableDates.length === 0) {
+            select.innerHTML = '<option value="">ยังไม่มีข้อมูล</option>';
+            document.getElementById("dashDateHint").innerText = "ไม่มีข้อมูล";
+            return;
+        }
+
+        // เรียงจากวันล่าสุดไว้บนสุด
+        const dates = [...data.availableDates].reverse();
+        dates.forEach((d, i) => {
+            const opt = document.createElement("option");
+            opt.value = d;
+            opt.textContent = d + (i === 0 ? " (ล่าสุด)" : "");
+            select.appendChild(opt);
+        });
+        
+        document.getElementById("dashDateHint").innerText = `มีข้อมูล ${data.availableDates.length} วัน`;
+    }
+
+    document.getElementById("dashDateSelect").addEventListener("change", function() {
+        if (cachedDashboardData) {
+            renderDashboard(cachedDashboardData, this.value);
+        }
+    });
+
+    // ==========================================
+    // ข้อ 3: Render Dashboard จากข้อมูลที่ server คำนวณมาแล้ว
+    // ==========================================
+    function renderDashboard(data, selectedDate) {
+        document.getElementById("dashboardContent").style.display = "block";
+
+        if (!data.dailyStats || Object.keys(data.dailyStats).length === 0) {
+            document.getElementById("dashboardTitle").innerText = "สรุปสถิติ: ยังไม่มีข้อมูลการเช็คชื่อ";
+            document.getElementById("kpiPresent").innerText = 0;
+            document.getElementById("kpiAbsent").innerText = 0;
+            document.getElementById("kpiLeave").innerText = 0;
+            document.getElementById("kpiLate").innerText = 0;
+            document.getElementById("watchlistBody").innerHTML = '<tr><td colspan="3" class="text-center text-muted">ยังไม่มีข้อมูล</td></tr>';
+            return;
+        }
+
+        // ถ้าไม่ได้เลือกวันที่ ใช้วันล่าสุด
+        const targetDate = selectedDate || data.availableDates[data.availableDates.length - 1];
+        const isLatest = targetDate === data.availableDates[data.availableDates.length - 1];
+        
+        const titleSuffix = isLatest ? `${targetDate} (ข้อมูลล่าสุด)` : targetDate;
+        document.getElementById("dashboardTitle").innerText = `สรุปสถิติประจำวัน: ${titleSuffix}`;
+
+        // ดึงสถิติของวันที่เลือก
+        const dayStats = data.dailyStats[targetDate] || { "มา": 0, "ขาด": 0, "ลา": 0, "สาย": 0 };
+
+        document.getElementById("kpiPresent").innerText = dayStats["มา"] || 0;
+        document.getElementById("kpiAbsent").innerText = dayStats["ขาด"] || 0;
+        document.getElementById("kpiLeave").innerText = dayStats["ลา"] || 0;
+        document.getElementById("kpiLate").innerText = dayStats["สาย"] || 0;
+
+        // Watchlist
+        const watchlist = data.watchlist || [];
+        document.getElementById("watchlistBody").innerHTML = watchlist.length > 0
+            ? watchlist.map(w => `<tr><td>${w.no}</td><td>${w.name}</td><td class="text-center text-danger fw-bold">${w.absent}</td></tr>`).join("")
+            : '<tr><td colspan="3" class="text-center text-success">ไม่มีนักเรียนที่ขาดเรียนสะสม</td></tr>';
+
+        // ข้อ 5: กราฟแท่ง 7 วันย้อนหลังจากวันที่เลือก + เส้น reference line
+        const allDates = data.availableDates;
+        const targetIndex = allDates.indexOf(targetDate);
+        const startIdx = Math.max(0, targetIndex - 6);
+        
+        let trendLabels = [];
+        let trendPresentData = [];
+        
+        for (let i = startIdx; i <= targetIndex; i++) {
+            const d = allDates[i];
+            trendLabels.push(d);
+            trendPresentData.push(data.dailyStats[d] ? (data.dailyStats[d]["มา"] || 0) : 0);
+        }
+
+        drawCharts(dayStats, trendLabels, trendPresentData, data.totalStudents || 0);
+    }
+
+    // ==========================================
+    // วาดกราฟ (ข้อ 5: เพิ่ม reference line จำนวนเด็กทั้งหมด)
+    // ==========================================
+    function drawCharts(dayStats, trendLabels, trendPresentData, totalStudents) {
+        if (myDonutChart) myDonutChart.destroy();
+        if (myBarChart) myBarChart.destroy();
+
+        // 1. Donut Chart
+        const ctxDonut = document.getElementById('donutChart').getContext('2d');
+        myDonutChart = new Chart(ctxDonut, {
+            type: 'doughnut',
+            data: {
+                labels: ['มา', 'ขาด', 'ลา', 'สาย'],
+                datasets: [{
+                    data: [dayStats["มา"] || 0, dayStats["ขาด"] || 0, dayStats["ลา"] || 0, dayStats["สาย"] || 0],
+                    backgroundColor: ['#198754', '#dc3545', '#ffc107', '#fd7e14']
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+
+        // 2. Bar Chart + เส้น Reference Line (จำนวนนักเรียนทั้งหมด)
+        const ctxBar = document.getElementById('barChart').getContext('2d');
+        myBarChart = new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: trendLabels,
+                datasets: [{
+                    label: 'จำนวนคนมาเรียน',
+                    data: trendPresentData,
+                    backgroundColor: '#0d6efd',
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 },
+                        max: totalStudents > 0 ? Math.max(totalStudents + 2, Math.max(...trendPresentData) + 2) : undefined
+                    }
+                },
+                plugins: {
+                    annotation: totalStudents > 0 ? {
+                        annotations: {
+                            totalLine: {
+                                type: 'line',
+                                yMin: totalStudents,
+                                yMax: totalStudents,
+                                borderColor: '#dc3545',
+                                borderWidth: 2,
+                                borderDash: [8, 4],
+                                label: {
+                                    display: true,
+                                    content: `จำนวนนักเรียนทั้งหมด (${totalStudents} คน)`,
+                                    position: 'start',
+                                    backgroundColor: '#dc3545',
+                                    color: 'white',
+                                    font: { size: 11 }
+                                }
+                            }
+                        }
+                    } : {}
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // วาดตารางเช็คชื่อ
     // ==========================================
     function renderAttendanceTable(students) {
         const tbody = document.getElementById("studentList");
@@ -229,10 +487,24 @@
         document.getElementById("tableContainer").style.display = "block";
     }
 
+    // ==========================================
+    // ข้อ 4 & 5: บันทึกข้อมูล (ยืนยันก่อนทับ + ปุ่ม disable + toast)
+    // ==========================================
     async function saveData() {
         const dateStr = document.getElementById("dateInput").value;
         const className = document.getElementById("classSelect").value;
-        if (!dateStr || !className) return alert("เลือกวันที่และห้องเรียน");
+        if (!dateStr || !className) return showToast("กรุณาเลือกวันที่และห้องเรียน", "warning");
+
+        const saveBtn = document.getElementById("saveBtn");
+        const saveBtnText = document.getElementById("saveBtnText");
+        const saveBtnLoading = document.getElementById("saveBtnLoading");
+
+        // ข้อ 4: ตรวจสอบว่าวันนี้มีข้อมูลเดิมหรือไม่
+        // เช็คจาก cachedDashboardData
+        if (cachedDashboardData && cachedDashboardData.availableDates && cachedDashboardData.availableDates.includes(dateStr)) {
+            const confirmed = await confirmOverwrite(dateStr);
+            if (!confirmed) return;
+        }
 
         let data = {};
         document.querySelectorAll(".radio-group").forEach(g => {
@@ -240,121 +512,27 @@
             if (checked) data[g.dataset.studentid] = checked.value;
         });
 
-        showLoading();
+        // ข้อ 5: Disable ปุ่มระหว่างรอ
+        saveBtn.disabled = true;
+        saveBtnText.style.display = "none";
+        saveBtnLoading.style.display = "inline";
+
         const res = await fetchAPI({ action: "saveAttendance", className: className, date: dateStr, attendanceData: data });
-        hideLoading();
         
+        // Enable ปุ่มกลับ
+        saveBtn.disabled = false;
+        saveBtnText.style.display = "inline";
+        saveBtnLoading.style.display = "none";
+
         if (res && res.status === "success") {
-            alert("บันทึกสำเร็จ! ข้อมูลแดชบอร์ดจะถูกอัปเดตใหม่");
-            // รีเฟรชแดชบอร์ดอัตโนมัติหลังบันทึกเสร็จ
-            document.getElementById("classSelect").dispatchEvent(new Event('change')); 
+            showToast("บันทึกสำเร็จ! กำลังอัปเดตแดชบอร์ด...", "success");
+            // รีเฟรชแดชบอร์ด
+            setTimeout(() => {
+                document.getElementById("classSelect").dispatchEvent(new Event('change'));
+            }, 500);
+        } else {
+            showToast("บันทึกไม่สำเร็จ กรุณาลองใหม่", "error");
         }
-    }
-
-    // ==========================================
-    // ฟังก์ชันคำนวณและสร้าง Dashboard (หัวใจสำคัญของการอ่านข้อมูลแบบ Wide)
-    // ==========================================
-    function processDashboard(headers, rows) {
-        document.getElementById("dashboardContent").style.display = "block";
-        
-        // คอลัมน์วันที่ เริ่มที่ Index 4 (A=ID, B=No, C=Name, D=Total, E=Date1...)
-        const DATE_START_INDEX = 4; 
-        
-        if (headers.length <= DATE_START_INDEX) {
-            document.getElementById("dashboardTitle").innerText = "สรุปสถิติประจำวัน: ยังไม่มีข้อมูลการเช็คชื่อ";
-            return;
-        }
-
-        const lastColIndex = headers.length - 1;
-        const todayDateStr = headers[lastColIndex];
-        document.getElementById("dashboardTitle").innerText = `สรุปสถิติประจำวัน: ${todayDateStr}`;
-
-        // 1. คำนวณสถิติของ "วันนี้" (คอลัมน์ขวาสุด)
-        let tStats = { "มา": 0, "ขาด": 0, "ลา": 0, "สาย": 0 };
-        let watchlist = [];
-
-        rows.forEach(row => {
-            // นับสถิติวันนี้
-            let todayStatus = row[lastColIndex];
-            if (tStats[todayStatus] !== undefined) tStats[todayStatus]++;
-
-            // นับสถิติการ "ขาด" รวมทั้งเทอมของเด็กคนนี้ (จาก Index 4 ถึงขวาสุด)
-            let absentCount = 0;
-            for(let i = DATE_START_INDEX; i <= lastColIndex; i++) {
-                if(row[i] === "ขาด") absentCount++;
-            }
-            if (absentCount > 0) {
-                watchlist.push({ no: row[1], name: row[2], absent: absentCount });
-            }
-        });
-
-        // อัปเดตตัวเลข KPI
-        document.getElementById("kpiPresent").innerText = tStats["มา"];
-        document.getElementById("kpiAbsent").innerText = tStats["ขาด"];
-        document.getElementById("kpiLeave").innerText = tStats["ลา"];
-        document.getElementById("kpiLate").innerText = tStats["สาย"];
-
-        // สร้างตาราง Watchlist (เรียงจากขาดมากสุดไปน้อยสุด เอาแค่ Top 5)
-        watchlist.sort((a, b) => b.absent - a.absent);
-        const top5 = watchlist.slice(0, 5);
-        document.getElementById("watchlistBody").innerHTML = top5.map(w => `
-            <tr><td>${w.no}</td><td>${w.name}</td><td class="text-center text-danger fw-bold">${w.absent}</td></tr>
-        `).join("");
-        if(top5.length === 0) document.getElementById("watchlistBody").innerHTML = '<tr><td colspan="3" class="text-center text-success">ไม่มีนักเรียนที่ขาดเรียนสะสม</td></tr>';
-
-        // 2. ดึงข้อมูล 7 วันล่าสุด ทำกราฟแท่ง
-        let trendLabels = [];
-        let trendPresentData = [];
-        let numDays = Math.min(7, headers.length - DATE_START_INDEX); // เอาสูงสุด 7 วันย้อนหลัง
-        
-        for (let i = lastColIndex - numDays + 1; i <= lastColIndex; i++) {
-            trendLabels.push(headers[i]); // ชื่อวันที่
-            let dayPresent = 0;
-            rows.forEach(r => { if(r[i] === "มา") dayPresent++; });
-            trendPresentData.push(dayPresent);
-        }
-
-        // วาดกราฟ
-        drawCharts(tStats, trendLabels, trendPresentData);
-    }
-
-    function drawCharts(tStats, trendLabels, trendPresentData) {
-        // ทำลายกราฟเก่าก่อนวาดใหม่ (ป้องกันการวาดซ้อนทับ)
-        if (myDonutChart) myDonutChart.destroy();
-        if (myBarChart) myBarChart.destroy();
-
-        // 1. Donut Chart
-        const ctxDonut = document.getElementById('donutChart').getContext('2d');
-        myDonutChart = new Chart(ctxDonut, {
-            type: 'doughnut',
-            data: {
-                labels: ['มา', 'ขาด', 'ลา', 'สาย'],
-                datasets: [{
-                    data: [tStats["มา"], tStats["ขาด"], tStats["ลา"], tStats["สาย"]],
-                    backgroundColor: ['#198754', '#dc3545', '#ffc107', '#fd7e14']
-                }]
-            },
-            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-        });
-
-        // 2. Bar Chart
-        const ctxBar = document.getElementById('barChart').getContext('2d');
-        myBarChart = new Chart(ctxBar, {
-            type: 'bar',
-            data: {
-                labels: trendLabels,
-                datasets: [{
-                    label: 'จำนวนคนมาเรียน',
-                    data: trendPresentData,
-                    backgroundColor: '#0d6efd',
-                    borderRadius: 5
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
-            }
-        });
     }
 
     // UI Helpers
