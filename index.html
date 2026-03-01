@@ -3,17 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบเช็คชื่อนักเรียน</title>
-    <!-- ใช้ Bootstrap 5 -->
+    <title>ระบบเช็คชื่อ & แดชบอร์ด</title>
+    <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Chart.js สำหรับทำกราฟ -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { background-color: #f4f7f6; font-family: 'Sarabun', sans-serif; }
-        .loading { display: none; text-align: center; margin: 20px 0; }
+        .nav-tabs .nav-link { font-weight: bold; color: #495057; }
+        .nav-tabs .nav-link.active { color: #0d6efd; border-bottom: 3px solid #0d6efd; }
+        .kpi-card { border-radius: 10px; color: white; padding: 20px; text-align: center; }
+        .bg-present { background-color: #198754; }
+        .bg-absent { background-color: #dc3545; }
+        .bg-leave { background-color: #ffc107; color: black !important; }
+        .bg-late { background-color: #fd7e14; }
+        .loading { display: none; text-align: center; margin: 30px 0; }
+        
+        /* สไตล์ปุ่มเช็คชื่อ */
         .radio-group input[type="radio"] { display: none; }
-        .radio-group label {
-            padding: 5px 15px; border-radius: 20px; border: 1px solid #ccc;
-            cursor: pointer; margin-right: 5px; font-size: 14px;
-        }
+        .radio-group label { padding: 5px 15px; border-radius: 20px; border: 1px solid #ccc; cursor: pointer; margin-right: 5px; font-size: 14px; }
         .radio-group input[value="มา"]:checked + label { background-color: #198754; color: white; border-color: #198754; }
         .radio-group input[value="ขาด"]:checked + label { background-color: #dc3545; color: white; border-color: #dc3545; }
         .radio-group input[value="ลา"]:checked + label { background-color: #ffc107; color: black; border-color: #ffc107; }
@@ -23,208 +31,335 @@
 <body>
 
 <div class="container mt-4 mb-5">
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <h3 class="card-title text-center mb-4">📝 ระบบเช็คชื่อนักเรียน</h3>
-            
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label>วันที่เช็คชื่อ:</label>
-                    <input type="date" id="dateInput" class="form-control" required>
-                </div>
-                <div class="col-md-6">
-                    <label>เลือกห้องเรียน:</label>
-                    <select id="classSelect" class="form-select">
-                        <option value="">กำลังโหลดข้อมูล...</option>
-                    </select>
-                </div>
-            </div>
+    <h3 class="text-center mb-4">🏫 ระบบบริหารจัดการชั้นเรียน</h3>
 
-            <div id="loading" class="loading">
-                <div class="spinner-border text-primary" role="status"></div>
-                <p class="mt-2 text-muted" id="loadingText">กำลังประมวลผล...</p>
-            </div>
+    <!-- แถบเมนูนำทาง (Tabs) -->
+    <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance" type="button" role="tab">📝 เช็คชื่อประจำวัน</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" role="tab">📊 แดชบอร์ด (สถิติ)</button>
+        </li>
+    </ul>
 
-            <div class="table-responsive mt-3" style="display: none;" id="tableContainer">
-                <table class="table table-bordered table-hover bg-white">
-                    <thead class="table-dark">
-                        <tr>
-                            <th width="10%">เลขที่</th>
-                            <th width="40%">ชื่อ-สกุล</th>
-                            <th width="50%">สถานะ</th>
-                        </tr>
-                    </thead>
-                    <tbody id="studentList">
-                        <!-- รายชื่อนักเรียนจะแสดงที่นี่ -->
-                    </tbody>
-                </table>
-                <div class="d-grid gap-2">
-                    <button class="btn btn-primary btn-lg" onclick="saveData()">💾 บันทึกการเช็คชื่อ</button>
+    <!-- ตัวเลือกห้องเรียน (ใช้ร่วมกันทั้ง 2 หน้า) -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body row align-items-center">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">เลือกห้องเรียน:</label>
+                <select id="classSelect" class="form-select border-primary">
+                    <option value="">กำลังโหลดข้อมูล...</option>
+                </select>
+            </div>
+            <div class="col-md-6 text-end">
+                <div id="globalLoading" class="loading m-0">
+                    <span class="spinner-border spinner-border-sm text-primary" role="status"></span> กำลังประมวลผล...
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- ส่วนเนื้อหา (Tab Content) -->
+    <div class="tab-content" id="myTabContent">
+        
+        <!-- ========================================== -->
+        <!-- TAB 1: หน้าเช็คชื่อ -->
+        <!-- ========================================== -->
+        <div class="tab-pane fade show active" id="attendance" role="tabpanel">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="mb-3 w-50">
+                        <label>วันที่เช็คชื่อ:</label>
+                        <input type="date" id="dateInput" class="form-control" required>
+                    </div>
+                    <div class="table-responsive" style="display: none;" id="tableContainer">
+                        <table class="table table-bordered table-hover bg-white">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th width="10%">เลขที่</th><th width="40%">ชื่อ-สกุล</th><th width="50%">สถานะ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentList"></tbody>
+                        </table>
+                        <button class="btn btn-primary btn-lg w-100" onclick="saveData()">💾 บันทึกการเช็คชื่อ</button>
+                    </div>
+                    <div id="emptyMessage1" class="text-center text-muted my-5">กรุณาเลือกห้องเรียนเพื่อเช็คชื่อ</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 2: หน้าแดชบอร์ด -->
+        <!-- ========================================== -->
+        <div class="tab-pane fade" id="dashboard" role="tabpanel">
+            <div id="dashboardContent" style="display: none;">
+                <h5 class="mb-3 text-secondary" id="dashboardTitle">สรุปสถิติประจำวัน: </h5>
+                
+                <!-- KPI Cards -->
+                <div class="row mb-4">
+                    <div class="col-6 col-md-3 mb-2"><div class="kpi-card bg-present"><h2 id="kpiPresent">0</h2><small>มาเรียน</small></div></div>
+                    <div class="col-6 col-md-3 mb-2"><div class="kpi-card bg-absent"><h2 id="kpiAbsent">0</h2><small>ขาด</small></div></div>
+                    <div class="col-6 col-md-3 mb-2"><div class="kpi-card bg-leave"><h2 id="kpiLeave">0</h2><small>ลา</small></div></div>
+                    <div class="col-6 col-md-3 mb-2"><div class="kpi-card bg-late"><h2 id="kpiLate">0</h2><small>สาย</small></div></div>
+                </div>
+
+                <div class="row">
+                    <!-- กราฟโดนัท (วันนี้) -->
+                    <div class="col-md-5 mb-4">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-center">สัดส่วนการมาเรียนวันนี้</h6>
+                                <canvas id="donutChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- ตารางเฝ้าระวังเด็กขาดบ่อย -->
+                    <div class="col-md-7 mb-4">
+                        <div class="card shadow-sm h-100 border-danger">
+                            <div class="card-header bg-danger text-white">⚠️ นักเรียนที่ต้องติดตาม (ขาดบ่อยสุดเทอมนี้)</div>
+                            <div class="card-body p-0">
+                                <table class="table table-sm table-striped m-0">
+                                    <thead class="table-light"><tr><th>เลขที่</th><th>ชื่อ-สกุล</th><th class="text-center">ขาด(วัน)</th></tr></thead>
+                                    <tbody id="watchlistBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- กราฟแท่งแนวโน้ม -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h6 class="card-title text-center">แนวโน้มการมาเรียน (7 วันล่าสุด)</h6>
+                        <canvas id="barChart" height="100"></canvas>
+                    </div>
+                </div>
+
+            </div>
+            <div id="emptyMessage2" class="text-center text-muted my-5">กรุณาเลือกห้องเรียนเพื่อดูสถิติ</div>
+        </div>
+
+    </div>
 </div>
 
-<script>
-    // ==========================================
-    // ตั้งค่า API URL
-    // ==========================================
-    const API_URL = "https://script.google.com/macros/s/AKfycbw7lWAsb-0G8PWefXxL0kXe_b1wxAvo88CV79uEP-Imir0K_d8GR4vzLVt3Hy6buAVK/exec"; // <--- เปลี่ยนเป็น Web App URL ของคุณ
+<!-- Bootstrap Bundle JS (สำหรับ Tabs) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    // เซ็ตวันที่ปัจจุบันเป็นค่าเริ่มต้น
+<script>
+    const API_URL = "YOUR_WEB_APP_URL_HERE"; // <--- ใส่ Web App URL ที่ Deploy ล่าสุด
+
+    let myDonutChart = null;
+    let myBarChart = null;
+
     document.getElementById('dateInput').valueAsDate = new Date();
 
-    // ==========================================
-    // ฟังก์ชันเชื่อมต่อ API กลาง (เลี่ยง CORS ด้วย text/plain)
-    // ==========================================
     async function fetchAPI(payload) {
         try {
             const response = await fetch(API_URL, {
                 method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" }, // ใช้ text/plain แก้ปัญหา CORS
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
                 body: JSON.stringify(payload)
             });
             return await response.json();
         } catch (error) {
-            alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
             console.error(error);
-            return null;
+            alert("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้"); return null;
         }
     }
 
-    // ==========================================
     // โหลดรายชื่อห้องเรียนตอนเปิดเว็บ
-    // ==========================================
-    async function loadConfig() {
-        showLoading("กำลังโหลดข้อมูลตั้งค่า...");
+    window.onload = async function() {
+        showLoading();
         const res = await fetchAPI({ action: "getConfigAndStudents", className: "" });
         hideLoading();
-
         if (res && res.status === "success") {
             const select = document.getElementById("classSelect");
             select.innerHTML = '<option value="">-- กรุณาเลือกห้องเรียน --</option>';
-            res.classes.forEach(c => {
-                let opt = document.createElement("option");
-                opt.value = c.trim();
-                opt.textContent = c.trim();
-                select.appendChild(opt);
-            });
+            res.classes.forEach(c => select.innerHTML += `<option value="${c.trim()}">${c.trim()}</option>`);
         }
-    }
+    };
 
-    // ==========================================
-    // เมื่อเปลี่ยนห้องเรียน ให้ดึงรายชื่อเด็ก
-    // ==========================================
+    // เมื่อเลือกห้องเรียน ให้โหลดข้อมูลทั้ง 2 หน้า
     document.getElementById("classSelect").addEventListener("change", async function() {
         const className = this.value;
         if (!className) {
             document.getElementById("tableContainer").style.display = "none";
+            document.getElementById("dashboardContent").style.display = "none";
+            document.getElementById("emptyMessage1").style.display = "block";
+            document.getElementById("emptyMessage2").style.display = "block";
             return;
         }
 
-        showLoading(`กำลังโหลดรายชื่อนักเรียน ${className}...`);
-        document.getElementById("tableContainer").style.display = "none";
+        document.getElementById("emptyMessage1").style.display = "none";
+        document.getElementById("emptyMessage2").style.display = "none";
+        
+        showLoading();
+        
+        // โหลดหน้าเช็คชื่อ
+        const res1 = await fetchAPI({ action: "getConfigAndStudents", className: className });
+        if (res1 && res1.status === "success") renderAttendanceTable(res1.students);
 
-        const res = await fetchAPI({ action: "getConfigAndStudents", className: className });
+        // โหลดหน้าแดชบอร์ด
+        const res2 = await fetchAPI({ action: "getDashboardData", className: className });
+        if (res2 && res2.status === "success") processDashboard(res2.headers, res2.rows);
+        
         hideLoading();
-
-        if (res && res.status === "success") {
-            renderTable(res.students);
-        }
     });
 
     // ==========================================
-    // สร้างตารางรายชื่อพร้อมปุ่ม Radio
+    // ฟังก์ชันวาดตารางเช็คชื่อ (เหมือนเดิม)
     // ==========================================
-    function renderTable(students) {
+    function renderAttendanceTable(students) {
         const tbody = document.getElementById("studentList");
-        tbody.innerHTML = "";
-
-        students.forEach(std => {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
+        tbody.innerHTML = students.map(std => `
+            <tr>
                 <td class="text-center align-middle">${std.number}</td>
                 <td class="align-middle">${std.name}</td>
                 <td>
                     <div class="radio-group" data-studentid="${std.studentId}">
-                        <input type="radio" id="p_${std.studentId}" name="status_${std.studentId}" value="มา" checked>
-                        <label for="p_${std.studentId}">มา</label>
-
-                        <input type="radio" id="a_${std.studentId}" name="status_${std.studentId}" value="ขาด">
-                        <label for="a_${std.studentId}">ขาด</label>
-
-                        <input type="radio" id="l_${std.studentId}" name="status_${std.studentId}" value="ลา">
-                        <label for="l_${std.studentId}">ลา</label>
-
-                        <input type="radio" id="lt_${std.studentId}" name="status_${std.studentId}" value="สาย">
-                        <label for="lt_${std.studentId}">สาย</label>
+                        <input type="radio" id="p_${std.studentId}" name="st_${std.studentId}" value="มา" checked><label for="p_${std.studentId}">มา</label>
+                        <input type="radio" id="a_${std.studentId}" name="st_${std.studentId}" value="ขาด"><label for="a_${std.studentId}">ขาด</label>
+                        <input type="radio" id="l_${std.studentId}" name="st_${std.studentId}" value="ลา"><label for="l_${std.studentId}">ลา</label>
+                        <input type="radio" id="lt_${std.studentId}" name="st_${std.studentId}" value="สาย"><label for="lt_${std.studentId}">สาย</label>
                     </div>
                 </td>
-            `;
-            tbody.appendChild(tr);
-        });
-
+            </tr>
+        `).join("");
         document.getElementById("tableContainer").style.display = "block";
     }
 
-    // ==========================================
-    // รวบรวมข้อมูลและกดบันทึก
-    // ==========================================
     async function saveData() {
         const dateStr = document.getElementById("dateInput").value;
         const className = document.getElementById("classSelect").value;
+        if (!dateStr || !className) return alert("เลือกวันที่และห้องเรียน");
+
+        let data = {};
+        document.querySelectorAll(".radio-group").forEach(g => {
+            const checked = g.querySelector('input:checked');
+            if (checked) data[g.dataset.studentid] = checked.value;
+        });
+
+        showLoading();
+        const res = await fetchAPI({ action: "saveAttendance", className: className, date: dateStr, attendanceData: data });
+        hideLoading();
         
-        if (!dateStr || !className) {
-            alert("กรุณาเลือกวันที่และห้องเรียน");
+        if (res && res.status === "success") {
+            alert("บันทึกสำเร็จ! ข้อมูลแดชบอร์ดจะถูกอัปเดตใหม่");
+            // รีเฟรชแดชบอร์ดอัตโนมัติหลังบันทึกเสร็จ
+            document.getElementById("classSelect").dispatchEvent(new Event('change')); 
+        }
+    }
+
+    // ==========================================
+    // ฟังก์ชันคำนวณและสร้าง Dashboard (หัวใจสำคัญของการอ่านข้อมูลแบบ Wide)
+    // ==========================================
+    function processDashboard(headers, rows) {
+        document.getElementById("dashboardContent").style.display = "block";
+        
+        // คอลัมน์วันที่ เริ่มที่ Index 4 (A=ID, B=No, C=Name, D=Total, E=Date1...)
+        const DATE_START_INDEX = 4; 
+        
+        if (headers.length <= DATE_START_INDEX) {
+            document.getElementById("dashboardTitle").innerText = "สรุปสถิติประจำวัน: ยังไม่มีข้อมูลการเช็คชื่อ";
             return;
         }
 
-        // ดึงค่าสถานะของเด็กทุกคน
-        let attendanceData = {};
-        const radioGroups = document.querySelectorAll(".radio-group");
-        
-        radioGroups.forEach(group => {
-            const studentId = group.getAttribute("data-studentid");
-            const checkedRadio = group.querySelector('input[type="radio"]:checked');
-            if (checkedRadio) {
-                attendanceData[studentId] = checkedRadio.value;
+        const lastColIndex = headers.length - 1;
+        const todayDateStr = headers[lastColIndex];
+        document.getElementById("dashboardTitle").innerText = `สรุปสถิติประจำวัน: ${todayDateStr}`;
+
+        // 1. คำนวณสถิติของ "วันนี้" (คอลัมน์ขวาสุด)
+        let tStats = { "มา": 0, "ขาด": 0, "ลา": 0, "สาย": 0 };
+        let watchlist = [];
+
+        rows.forEach(row => {
+            // นับสถิติวันนี้
+            let todayStatus = row[lastColIndex];
+            if (tStats[todayStatus] !== undefined) tStats[todayStatus]++;
+
+            // นับสถิติการ "ขาด" รวมทั้งเทอมของเด็กคนนี้ (จาก Index 4 ถึงขวาสุด)
+            let absentCount = 0;
+            for(let i = DATE_START_INDEX; i <= lastColIndex; i++) {
+                if(row[i] === "ขาด") absentCount++;
+            }
+            if (absentCount > 0) {
+                watchlist.push({ no: row[1], name: row[2], absent: absentCount });
             }
         });
 
-        showLoading("กำลังบันทึกข้อมูล...");
-        document.getElementById("tableContainer").style.display = "none";
+        // อัปเดตตัวเลข KPI
+        document.getElementById("kpiPresent").innerText = tStats["มา"];
+        document.getElementById("kpiAbsent").innerText = tStats["ขาด"];
+        document.getElementById("kpiLeave").innerText = tStats["ลา"];
+        document.getElementById("kpiLate").innerText = tStats["สาย"];
 
-        const payload = {
-            action: "saveAttendance",
-            className: className,
-            date: dateStr,
-            attendanceData: attendanceData
-        };
+        // สร้างตาราง Watchlist (เรียงจากขาดมากสุดไปน้อยสุด เอาแค่ Top 5)
+        watchlist.sort((a, b) => b.absent - a.absent);
+        const top5 = watchlist.slice(0, 5);
+        document.getElementById("watchlistBody").innerHTML = top5.map(w => `
+            <tr><td>${w.no}</td><td>${w.name}</td><td class="text-center text-danger fw-bold">${w.absent}</td></tr>
+        `).join("");
+        if(top5.length === 0) document.getElementById("watchlistBody").innerHTML = '<tr><td colspan="3" class="text-center text-success">ไม่มีนักเรียนที่ขาดเรียนสะสม</td></tr>';
 
-        const res = await fetchAPI(payload);
-        hideLoading();
-
-        if (res && res.status === "success") {
-            alert("บันทึกข้อมูลสำเร็จ!");
-            document.getElementById("tableContainer").style.display = "block"; // แสดงตารางกลับมาเหมือนเดิม
-        } else {
-            alert("เกิดข้อผิดพลาด: " + (res ? res.message : ""));
-            document.getElementById("tableContainer").style.display = "block";
+        // 2. ดึงข้อมูล 7 วันล่าสุด ทำกราฟแท่ง
+        let trendLabels = [];
+        let trendPresentData = [];
+        let numDays = Math.min(7, headers.length - DATE_START_INDEX); // เอาสูงสุด 7 วันย้อนหลัง
+        
+        for (let i = lastColIndex - numDays + 1; i <= lastColIndex; i++) {
+            trendLabels.push(headers[i]); // ชื่อวันที่
+            let dayPresent = 0;
+            rows.forEach(r => { if(r[i] === "มา") dayPresent++; });
+            trendPresentData.push(dayPresent);
         }
+
+        // วาดกราฟ
+        drawCharts(tStats, trendLabels, trendPresentData);
+    }
+
+    function drawCharts(tStats, trendLabels, trendPresentData) {
+        // ทำลายกราฟเก่าก่อนวาดใหม่ (ป้องกันการวาดซ้อนทับ)
+        if (myDonutChart) myDonutChart.destroy();
+        if (myBarChart) myBarChart.destroy();
+
+        // 1. Donut Chart
+        const ctxDonut = document.getElementById('donutChart').getContext('2d');
+        myDonutChart = new Chart(ctxDonut, {
+            type: 'doughnut',
+            data: {
+                labels: ['มา', 'ขาด', 'ลา', 'สาย'],
+                datasets: [{
+                    data: [tStats["มา"], tStats["ขาด"], tStats["ลา"], tStats["สาย"]],
+                    backgroundColor: ['#198754', '#dc3545', '#ffc107', '#fd7e14']
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+
+        // 2. Bar Chart
+        const ctxBar = document.getElementById('barChart').getContext('2d');
+        myBarChart = new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: trendLabels,
+                datasets: [{
+                    label: 'จำนวนคนมาเรียน',
+                    data: trendPresentData,
+                    backgroundColor: '#0d6efd',
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+            }
+        });
     }
 
     // UI Helpers
-    function showLoading(text) {
-        document.getElementById("loadingText").innerText = text;
-        document.getElementById("loading").style.display = "block";
-    }
-    function hideLoading() {
-        document.getElementById("loading").style.display = "none";
-    }
-
-    // โหลดข้อมูลเมื่อเปิดหน้าเว็บ
-    window.onload = loadConfig;
+    function showLoading() { document.getElementById("globalLoading").style.display = "block"; }
+    function hideLoading() { document.getElementById("globalLoading").style.display = "none"; }
 
 </script>
 </body>
