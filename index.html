@@ -3,261 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FaceID Pro V3 - Smart Thresholds</title>
-    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <title>ระบบเช็คชื่อนักเรียน</title>
+    <!-- ใช้ Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        :root { --primary: #00d2ff; --success: #00ff88; --danger: #ff0055; --warning: #ffb100; --dark-bg: #0f172a; }
-        body { font-family: 'Kanit', sans-serif; background: var(--dark-bg); color: #fff; margin: 0; padding: 20px; }
-        
-        /* Dashboard */
-        .dashboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 1200px; margin: 0 auto 25px; }
-        .stat-card { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); text-align: center; backdrop-filter: blur(10px); }
-        .stat-card h3 { margin: 0; font-size: 12px; color: var(--primary); font-family: 'Orbitron'; letter-spacing: 1px; }
-        .stat-card .value { font-size: 30px; font-weight: 700; margin-top: 5px; font-family: 'Orbitron'; }
-
-        /* Layout */
-        .main-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 25px; max-width: 1300px; margin: 0 auto; }
-        
-        /* Video Section */
-        .video-box { position: relative; border-radius: 20px; overflow: hidden; border: 2px solid rgba(0, 210, 255, 0.2); background: #000; line-height: 0; }
-        video { width: 100%; height: auto; transform: scaleX(-1); }
-        canvas { position: absolute; top: 0; left: 0; }
-
-        /* Quality Indicator */
-        .quality-meter { margin-top: 10px; background: #1e293b; height: 10px; border-radius: 5px; overflow: hidden; position: relative; }
-        #quality-bar { width: 0%; height: 100%; background: var(--danger); transition: 0.3s; }
-
-        /* Form & List */
-        .panel { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); }
-        .btn { width: 100%; padding: 14px; border: none; border-radius: 10px; font-family: 'Kanit'; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 10px; }
-        .btn-scan { background: var(--primary); color: #000; font-family: 'Orbitron'; font-size: 14px; }
-        .btn-reg { background: var(--success); color: #000; font-size: 16px; }
-        .btn-reg:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
-
-        input { width: calc(100% - 30px); padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: #fff; font-family: 'Kanit'; margin-bottom: 10px; outline: none; }
-        
-        .list-box { max-height: 350px; overflow-y: auto; margin-top: 15px; }
-        .row { display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.03); margin-bottom: 8px; border-radius: 10px; border-left: 4px solid var(--primary); font-size: 14px; }
-        .row.present { border-left-color: var(--success); }
-
-        .status-pill { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; display: inline-block; margin-bottom: 10px; font-family: 'Orbitron'; }
-        .bg-wait { background: #334155; color: #94a3b8; }
-        .bg-ready { background: var(--primary); color: #000; box-shadow: 0 0 10px var(--primary); }
+        body { background-color: #f4f7f6; font-family: 'Sarabun', sans-serif; }
+        .loading { display: none; text-align: center; margin: 20px 0; }
+        .radio-group input[type="radio"] { display: none; }
+        .radio-group label {
+            padding: 5px 15px; border-radius: 20px; border: 1px solid #ccc;
+            cursor: pointer; margin-right: 5px; font-size: 14px;
+        }
+        .radio-group input[value="มา"]:checked + label { background-color: #198754; color: white; border-color: #198754; }
+        .radio-group input[value="ขาด"]:checked + label { background-color: #dc3545; color: white; border-color: #dc3545; }
+        .radio-group input[value="ลา"]:checked + label { background-color: #ffc107; color: black; border-color: #ffc107; }
+        .radio-group input[value="สาย"]:checked + label { background-color: #fd7e14; color: white; border-color: #fd7e14; }
     </style>
 </head>
 <body>
 
-    <h3 style="text-align: center; font-family: 'Orbitron'; letter-spacing: 3px; color: var(--primary);">FACE_ID_PRO : THRESHOLD_V3</h3>
-
-    <div class="dashboard">
-        <div class="stat-card"><h3>TOTAL_MEMBERS</h3><div class="value" id="stat-total">0</div></div>
-        <div class="stat-card"><h3>PRESENT_TODAY</h3><div class="value" id="stat-present" style="color:var(--success)">0</div></div>
-        <div class="stat-card"><h3>ABSENT</h3><div class="value" id="stat-absent" style="color:var(--danger)">0</div></div>
-    </div>
-
-    <div class="main-grid">
-        <!-- 🎥 กล้องและตัววัดคุณภาพ -->
-        <div>
-            <div id="sys-status" class="status-pill bg-wait">LOADING_AI_MODELS...</div>
-            <div class="video-box" id="video-container">
-                <video id="video" autoplay muted></video>
-            </div>
-            <div class="quality-meter">
-                <div id="quality-bar"></div>
-            </div>
-            <div id="quality-text" style="font-size: 12px; margin-top: 5px; color: var(--danger);">FACE QUALITY: 0% (LOW)</div>
+<div class="container mt-4 mb-5">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h3 class="card-title text-center mb-4">📝 ระบบเช็คชื่อนักเรียน</h3>
             
-            <button class="btn btn-scan" onclick="startRecognition()">▶ START_AUTO_SCAN_MODE</button>
-        </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label>วันที่เช็คชื่อ:</label>
+                    <input type="date" id="dateInput" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label>เลือกห้องเรียน:</label>
+                    <select id="classSelect" class="form-select">
+                        <option value="">กำลังโหลดข้อมูล...</option>
+                    </select>
+                </div>
+            </div>
 
-        <!-- 📋 ลงทะเบียนและประวัติ -->
-        <div class="panel">
-            <h4 style="margin: 0 0 10px 0; font-family: 'Orbitron'; font-size: 14px; color: var(--primary);">REGISTER_UNIT</h4>
-            <input type="text" id="regName" placeholder="ENTER_NAME_HERE">
-            <button id="regBtn" class="btn btn-reg" onclick="registerFace()" disabled>CAPTURE_FACE (REQUIRES 85%)</button>
-            
-            <h4 style="margin: 25px 0 10px 0; font-family: 'Orbitron'; font-size: 14px;">ATTENDANCE_LOG</h4>
-            <div id="attendance-list" class="list-box"></div>
+            <div id="loading" class="loading">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted" id="loadingText">กำลังประมวลผล...</p>
+            </div>
+
+            <div class="table-responsive mt-3" style="display: none;" id="tableContainer">
+                <table class="table table-bordered table-hover bg-white">
+                    <thead class="table-dark">
+                        <tr>
+                            <th width="10%">เลขที่</th>
+                            <th width="40%">ชื่อ-สกุล</th>
+                            <th width="50%">สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentList">
+                        <!-- รายชื่อนักเรียนจะแสดงที่นี่ -->
+                    </tbody>
+                </table>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary btn-lg" onclick="saveData()">💾 บันทึกการเช็คชื่อ</button>
+                </div>
+            </div>
         </div>
     </div>
+</div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzh2ytLQUMlnBlekS2W1fX-bKHQJgRjCSLXDtiMpvLHDrqcbK8MlKMPtD6qu3ux-8X5/exec";
-    const MODEL_URL = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
+    // ==========================================
+    // ตั้งค่า API URL
+    // ==========================================
+    const API_URL = "https://script.google.com/macros/s/AKfycbw7lWAsb-0G8PWefXxL0kXe_b1wxAvo88CV79uEP-Imir0K_d8GR4vzLVt3Hy6buAVK/exec"; // <--- เปลี่ยนเป็น Web App URL ของคุณ
 
-    // *** ตั้งค่า THRESHOLDS (เกณฑ์แนะนำ) ***
-    const THRESHOLD_REG = 0.85; // 85% สำหรับลงทะเบียน
-    const THRESHOLD_SCAN = 0.75; // 75% สำหรับเช็คชื่อ
-    const MATCH_ACCURACY = 0.6; // ความแม่นยำในการเปรียบเทียบ (ยิ่งน้อยยิ่งเข้มงวด)
+    // เซ็ตวันที่ปัจจุบันเป็นค่าเริ่มต้น
+    document.getElementById('dateInput').valueAsDate = new Date();
 
-    let registeredUsers = [];
-    let isBlinked = false;
-    let faceMatcher;
-    let verifiedName = ""; 
-
-    window.onload = async () => {
+    // ==========================================
+    // ฟังก์ชันเชื่อมต่อ API กลาง (เลี่ยง CORS ด้วย text/plain)
+    // ==========================================
+    async function fetchAPI(payload) {
         try {
-            await Promise.all([
-                faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
-                faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-                faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-            ]);
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
-            document.getElementById('video').srcObject = stream;
-            
-            await refreshData();
-            document.getElementById('sys-status').innerText = "SYSTEM_READY";
-            document.getElementById('sys-status').className = "status-pill bg-ready";
-            
-            monitorFaceQuality(); // เริ่มตรวจสอบคุณภาพใบหน้าแบบเรียลไทม์
-        } catch (e) { alert("Camera Access Error: " + e.message); }
-    };
-
-    // --- ตรวจสอบคุณภาพใบหน้าแบบ Real-time ---
-    async function monitorFaceQuality() {
-        const video = document.getElementById('video');
-        const bar = document.getElementById('quality-bar');
-        const text = document.getElementById('quality-text');
-        const btn = document.getElementById('regBtn');
-
-        setInterval(async () => {
-            const det = await faceapi.detectSingleFace(video);
-            
-            if (det) {
-                const score = det.score;
-                const scorePercent = Math.round(score * 100);
-                
-                bar.style.width = scorePercent + "%";
-                text.innerText = `FACE QUALITY: ${scorePercent}%`;
-
-                if (score >= THRESHOLD_REG) {
-                    bar.style.background = "var(--success)";
-                    text.style.color = "var(--success)";
-                    btn.disabled = false;
-                    btn.innerText = "CAPTURE_FACE (READY)";
-                } else {
-                    bar.style.background = "var(--warning)";
-                    text.style.color = "var(--warning)";
-                    btn.disabled = true;
-                    btn.innerText = `CAPTURE_FACE (${scorePercent}% < 85%)`;
-                }
-            } else {
-                bar.style.width = "0%";
-                text.innerText = "FACE QUALITY: 0% (NOT DETECTED)";
-                text.style.color = "var(--danger)";
-                btn.disabled = true;
-            }
-        }, 500);
-    }
-
-    // --- โหมดสแกนใบหน้า (ใช้เกณฑ์ 75% กรองคุณภาพ) ---
-    async function startRecognition() {
-        if(registeredUsers.length === 0) return alert("ยังไม่มีข้อมูลสมาชิก");
-        
-        document.getElementById('sys-status').innerText = "SCANNING_MODE: ACTIVE";
-
-        const labeledDescriptors = await Promise.all(registeredUsers.map(async u => {
-            try {
-                const img = await faceapi.fetchImage(`https://lh3.googleusercontent.com/d/${u[1]}`);
-                const d = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
-                return new faceapi.LabeledFaceDescriptors(u[0], [d.descriptor]);
-            } catch(e) { return null; }
-        }));
-
-        faceMatcher = new faceapi.FaceMatcher(labeledDescriptors.filter(d => d), MATCH_ACCURACY);
-        
-        const video = document.getElementById('video');
-        const canvas = faceapi.createCanvasFromMedia(video);
-        document.getElementById('video-container').append(canvas);
-        const displaySize = { width: video.offsetWidth, height: video.offsetHeight };
-        faceapi.matchDimensions(canvas, displaySize);
-
-        setInterval(async () => {
-            const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
-            const resized = faceapi.resizeResults(detections, displaySize);
-            canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-
-            resized.forEach(d => {
-                const box = d.detection.box;
-                const flippedBox = { x: displaySize.width - box.x - box.width, y: box.y, width: box.width, height: box.height };
-                
-                // --- ตรวจสอบเกณฑ์ 75% ก่อนสแกนหาชื่อ ---
-                if (d.detection.score < THRESHOLD_SCAN) {
-                    new faceapi.draw.DrawBox(flippedBox, { label: "LOW_QUALITY", boxColor: "red" }).draw(canvas);
-                    return; 
-                }
-
-                const match = faceMatcher.findBestMatch(d.descriptor);
-                let color = (verifiedName === match.label) ? "#00ff88" : "#00d2ff";
-
-                new faceapi.draw.DrawBox(flippedBox, { label: match.toString(), boxColor: color }).draw(canvas);
-
-                // ตรวจจับการกระพริบตา (Blink Detection)
-                const landmarks = d.landmarks;
-                const leftEye = landmarks.getLeftEye();
-                const ear = Math.abs(leftEye[1].y - leftEye[5].y);
-
-                if (ear < 3.2 && match.label !== 'unknown') {
-                    isBlinked = true;
-                    handleCheckIn(match.label);
-                }
+            const response = await fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" }, // ใช้ text/plain แก้ปัญหา CORS
+                body: JSON.stringify(payload)
             });
-        }, 100);
+            return await response.json();
+        } catch (error) {
+            alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+            console.error(error);
+            return null;
+        }
     }
 
-    async function handleCheckIn(name) {
-        if (verifiedName === name || !isBlinked) return;
-        verifiedName = name;
+    // ==========================================
+    // โหลดรายชื่อห้องเรียนตอนเปิดเว็บ
+    // ==========================================
+    async function loadConfig() {
+        showLoading("กำลังโหลดข้อมูลตั้งค่า...");
+        const res = await fetchAPI({ action: "getConfigAndStudents", className: "" });
+        hideLoading();
+
+        if (res && res.status === "success") {
+            const select = document.getElementById("classSelect");
+            select.innerHTML = '<option value="">-- กรุณาเลือกห้องเรียน --</option>';
+            res.classes.forEach(c => {
+                let opt = document.createElement("option");
+                opt.value = c.trim();
+                opt.textContent = c.trim();
+                select.appendChild(opt);
+            });
+        }
+    }
+
+    // ==========================================
+    // เมื่อเปลี่ยนห้องเรียน ให้ดึงรายชื่อเด็ก
+    // ==========================================
+    document.getElementById("classSelect").addEventListener("change", async function() {
+        const className = this.value;
+        if (!className) {
+            document.getElementById("tableContainer").style.display = "none";
+            return;
+        }
+
+        showLoading(`กำลังโหลดรายชื่อนักเรียน ${className}...`);
+        document.getElementById("tableContainer").style.display = "none";
+
+        const res = await fetchAPI({ action: "getConfigAndStudents", className: className });
+        hideLoading();
+
+        if (res && res.status === "success") {
+            renderTable(res.students);
+        }
+    });
+
+    // ==========================================
+    // สร้างตารางรายชื่อพร้อมปุ่ม Radio
+    // ==========================================
+    function renderTable(students) {
+        const tbody = document.getElementById("studentList");
+        tbody.innerHTML = "";
+
+        students.forEach(std => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td class="text-center align-middle">${std.number}</td>
+                <td class="align-middle">${std.name}</td>
+                <td>
+                    <div class="radio-group" data-studentid="${std.studentId}">
+                        <input type="radio" id="p_${std.studentId}" name="status_${std.studentId}" value="มา" checked>
+                        <label for="p_${std.studentId}">มา</label>
+
+                        <input type="radio" id="a_${std.studentId}" name="status_${std.studentId}" value="ขาด">
+                        <label for="a_${std.studentId}">ขาด</label>
+
+                        <input type="radio" id="l_${std.studentId}" name="status_${std.studentId}" value="ลา">
+                        <label for="l_${std.studentId}">ลา</label>
+
+                        <input type="radio" id="lt_${std.studentId}" name="status_${std.studentId}" value="สาย">
+                        <label for="lt_${std.studentId}">สาย</label>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById("tableContainer").style.display = "block";
+    }
+
+    // ==========================================
+    // รวบรวมข้อมูลและกดบันทึก
+    // ==========================================
+    async function saveData() {
+        const dateStr = document.getElementById("dateInput").value;
+        const className = document.getElementById("classSelect").value;
         
-        document.getElementById('sys-status').innerText = "VERIFIED: " + name;
-        await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'checkin', name: name }) });
+        if (!dateStr || !className) {
+            alert("กรุณาเลือกวันที่และห้องเรียน");
+            return;
+        }
+
+        // ดึงค่าสถานะของเด็กทุกคน
+        let attendanceData = {};
+        const radioGroups = document.querySelectorAll(".radio-group");
         
-        await refreshData();
-        setTimeout(() => { verifiedName = ""; isBlinked = false; document.getElementById('sys-status').innerText = "SCANNING_MODE: ACTIVE"; }, 5000);
+        radioGroups.forEach(group => {
+            const studentId = group.getAttribute("data-studentid");
+            const checkedRadio = group.querySelector('input[type="radio"]:checked');
+            if (checkedRadio) {
+                attendanceData[studentId] = checkedRadio.value;
+            }
+        });
+
+        showLoading("กำลังบันทึกข้อมูล...");
+        document.getElementById("tableContainer").style.display = "none";
+
+        const payload = {
+            action: "saveAttendance",
+            className: className,
+            date: dateStr,
+            attendanceData: attendanceData
+        };
+
+        const res = await fetchAPI(payload);
+        hideLoading();
+
+        if (res && res.status === "success") {
+            alert("บันทึกข้อมูลสำเร็จ!");
+            document.getElementById("tableContainer").style.display = "block"; // แสดงตารางกลับมาเหมือนเดิม
+        } else {
+            alert("เกิดข้อผิดพลาด: " + (res ? res.message : ""));
+            document.getElementById("tableContainer").style.display = "block";
+        }
     }
 
-    async function registerFace() {
-        const name = document.getElementById('regName').value;
-        if(!name) return alert("กรุณาใส่ชื่อ");
-
-        const video = document.getElementById('video');
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
-        const base64 = canvas.toDataURL('image/jpeg').split(',')[1];
-
-        document.getElementById('sys-status').innerText = "UPLOADING_ENCRYPTED_FACE...";
-        await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'register', name: name, image: base64 }) });
-        
-        alert("Face Registered Successfully!");
-        document.getElementById('regName').value = "";
-        refreshData();
-        document.getElementById('sys-status').innerText = "SYSTEM_READY";
+    // UI Helpers
+    function showLoading(text) {
+        document.getElementById("loadingText").innerText = text;
+        document.getElementById("loading").style.display = "block";
+    }
+    function hideLoading() {
+        document.getElementById("loading").style.display = "none";
     }
 
-    async function refreshData() {
-        try {
-            const [uRes, dRes, aRes] = await Promise.all([
-                fetch(SCRIPT_URL),
-                fetch(SCRIPT_URL + "?type=dashboard"),
-                fetch(SCRIPT_URL + "?type=attendance")
-            ]);
-            registeredUsers = await uRes.json();
-            const dash = await dRes.json();
-            const history = await aRes.json();
+    // โหลดข้อมูลเมื่อเปิดหน้าเว็บ
+    window.onload = loadConfig;
 
-            document.getElementById('stat-total').innerText = dash.total;
-            document.getElementById('stat-present').innerText = dash.present;
-            document.getElementById('stat-absent').innerText = dash.absent;
-            document.getElementById('attendance-list').innerHTML = history.map(h => `
-                <div class="row present">
-                    <div style="font-weight:600;">${h[0]}</div>
-                    <div style="margin-left:auto; font-size:10px; font-family:'Orbitron'; color:var(--primary);">${new Date(h[1]).toLocaleTimeString('th-TH')}</div>
-                </div>
-            `).join('');
-        } catch(e) { console.error("Data Sync Error"); }
-    }
 </script>
 </body>
 </html>
