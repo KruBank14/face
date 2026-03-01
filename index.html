@@ -2,139 +2,145 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Face Check-in System</title>
-    <!-- 1. โหลด Library โดยเอา defer ออกเพื่อให้โหลดเสร็จก่อนเริ่มรันโค้ด -->
+    <title>Face ID Registration</title>
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <style>
-        body { font-family: 'Tahoma', sans-serif; background-color: #f0f2f5; text-align: center; margin: 0; padding: 20px; }
-        .main-container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        video { width: 100%; border-radius: 10px; background: #000; }
-        .status-bar { margin: 15px 0; padding: 10px; border-radius: 5px; background: #e8f0fe; color: #1967d2; font-weight: bold; }
-        .input-group { margin: 20px 0; display: flex; gap: 10px; justify-content: center; }
-        input { padding: 10px; border: 1px solid #ccc; border-radius: 5px; width: 60%; }
-        button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .btn-reg { background: #1a73e8; color: white; }
-        .btn-scan { background: #34a853; color: white; width: 100%; font-size: 18px; margin-top: 10px; }
+        /* สไตล์เดิม และปรับแต่งเพิ่มเติม */
+        body { font-family: 'Tahoma', sans-serif; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .wrapper { display: flex; gap: 20px; max-width: 1100px; width: 100%; }
+        .box { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .left { flex: 2; text-align: center; }
+        .right { flex: 1; }
+        video { width: 100%; border-radius: 8px; background: #222; transform: scaleX(-1); }
+        input, button { padding: 10px; margin: 5px; border-radius: 5px; border: 1px solid #ddd; }
+        .btn-main { background: #27ae60; color: white; cursor: pointer; width: 100%; font-size: 1.1em; }
+        .btn-reg { background: #2980b9; color: white; cursor: pointer; }
+        .history-table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        .history-table th, .history-table td { border-bottom: 1px solid #eee; padding: 8px; text-align: left; }
+        .status { font-size: 0.8em; color: #777; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
-    <div class="main-container">
-        <h1>📸 ระบบเช็คชื่อด้วยใบหน้า</h1>
-        <div id="status" class="status-bar">กำลังโหลด Library...</div>
+    <h1>ระบบเช็คชื่อด้วยใบหน้า</h1>
+    
+    <div class="wrapper">
+        <!-- ฝั่งซ้าย: กล้องและการจัดการ -->
+        <div class="box left">
+            <div id="status" class="status">กำลังโหลดระบบ...</div>
+            <video id="video" autoplay muted></video>
+            
+            <div style="margin-top: 15px; border: 1px dashed #ccc; padding: 10px;">
+                <h4>ลงทะเบียน / อัปเดตรูปภาพ</h4>
+                <input type="text" id="userName" placeholder="พิมพ์ชื่อให้ตรงกับในชีท">
+                <button class="btn-reg" onclick="register()">บันทึกใบหน้า</button>
+                <p style="font-size: 0.7em; color: #e67e22;">*ถ้าชื่อซ้ำกับในชีท ระบบจะทำการเปลี่ยนรูปภาพให้เป็นคนปัจจุบัน</p>
+            </div>
 
-        <div class="video-wrapper">
-            <video id="video" width="480" height="360" autoplay muted></video>
+            <button class="btn-main" onclick="startAttendance()">🟢 เริ่มโหมดสแกนหน้าอัตโนมัติ</button>
         </div>
 
-        <div class="input-group">
-            <input type="text" id="userName" placeholder="ระบุชื่อเพื่อลงทะเบียน">
-            <button class="btn-reg" onclick="register()">ลงทะเบียน</button>
+        <!-- ฝั่งขวา: ประวัติการเช็คชื่อ -->
+        <div class="box right">
+            <h3>🕒 ล่าสุดวันนี้</h3>
+            <table class="history-table">
+                <thead><tr><th>ชื่อ</th><th>เวลา</th></tr></thead>
+                <tbody id="attendance-body"></tbody>
+            </table>
         </div>
-
-        <button class="btn-scan" onclick="startAttendance()">เริ่มโหมดเช็คชื่ออัตโนมัติ</button>
     </div>
 
     <script>
         const video = document.getElementById('video');
         const statusText = document.getElementById('status');
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzh2ytLQUMlnBlekS2W1fX-bKHQJgRjCSLXDtiMpvLHDrqcbK8MlKMPtD6qu3ux-8X5/exec";
+        const SCRIPT_URL = "ใส่_URL_แอปเว็บ_ของคุณตรงนี้";
         const MODEL_URL = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
 
-        // 2. ใช้ window.onload เพื่อให้มั่นใจว่า faceapi ถูกโหลดเข้ามาใน Browser แล้ว
-        window.onload = async function() {
-            if (typeof faceapi === "undefined") {
-                statusText.innerText = "Error: โหลด Library ไม่สำเร็จ กรุณารีเฟรชหน้าจอ";
-                return;
-            }
-            await startSystem();
+        window.onload = async () => {
+            await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+            await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+            await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+            
+            navigator.mediaDevices.getUserMedia({ video: {} })
+                .then(stream => { video.srcObject = stream; statusText.innerText = "ระบบพร้อมใช้งาน"; })
+                .catch(() => { statusText.innerText = "ไม่พบกล้อง"; });
+            
+            loadAttendanceHistory();
         };
 
-        async function startSystem() {
-            statusText.innerText = "กำลังโหลด Model AI...";
-            try {
-                await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
-                await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-                await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
-                
-                const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
-                video.srcObject = stream;
-                statusText.innerText = "ระบบพร้อมใช้งาน";
-            } catch (err) {
-                statusText.innerText = "ไม่สามารถเข้าถึงกล้องได้";
-                console.error(err);
-            }
-        }
-
+        // ฟังก์ชันบันทึก/อัปเดตรูป
         async function register() {
             const name = document.getElementById('userName').value;
-            if (!name) return alert("กรุณาใส่ชื่อ");
+            if (!name) return alert("กรุณากรอกชื่อ");
 
             statusText.innerText = "กำลังตรวจจับใบหน้า...";
             const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
-            
-            if (!detection) return alert("ไม่พบใบหน้า กรุณาจัดหน้าให้อยู่กลางกล้อง");
+            if (!detection) return alert("ไม่พบใบหน้าในกล้อง");
 
-            statusText.innerText = "กำลังอัปโหลด...";
             const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
             canvas.getContext('2d').drawImage(video, 0, 0);
             const base64Image = canvas.toDataURL('image/jpeg').split(',')[1];
 
-            fetch(SCRIPT_URL, {
+            statusText.innerText = "กำลังส่งข้อมูล...";
+            const res = await fetch(SCRIPT_URL, {
                 method: 'POST',
                 body: JSON.stringify({ action: 'register', name: name, image: base64Image })
-            })
-            .then(() => {
-                alert("ลงทะเบียนสำเร็จ!");
-                statusText.innerText = "พร้อมใช้งาน";
-            })
-            .catch(() => alert("เกิดข้อผิดพลาด"));
+            });
+            const result = await res.json();
+            
+            if(result.status === "updated") {
+                alert("อัปเดตรูปภาพของคุณ " + name + " เรียบร้อย!");
+            } else {
+                alert("ลงทะเบียนคุณ " + name + " สำเร็จ!");
+            }
+            statusText.innerText = "พร้อมใช้งาน";
         }
 
+        // ฟังก์ชันสแกนหน้า
         async function startAttendance() {
-            statusText.innerText = "กำลังดึงข้อมูลใบหน้าจาก Cloud...";
+            statusText.innerText = "กำลังเตรียมฐานข้อมูลใบหน้า...";
+            const res = await fetch(SCRIPT_URL);
+            const users = await res.json();
+            
+            if(users.length === 0) return alert("ไม่มีข้อมูลผู้ลงทะเบียนที่มีรูปภาพ");
+
+            const labeledDescriptors = await Promise.all(users.map(async user => {
+                const img = await faceapi.fetchImage(`https://lh3.googleusercontent.com/d/${user[1]}`);
+                const det = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+                if(det) return new faceapi.LabeledFaceDescriptors(user[0], [det.descriptor]);
+            }));
+
+            const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors.filter(d => d), 0.6);
+            statusText.innerText = "โหมดสแกนหน้าทำงานแล้ว...";
+
+            setInterval(async () => {
+                const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
+                detections.forEach(fd => {
+                    const match = faceMatcher.findBestMatch(fd.descriptor);
+                    if (match.label !== 'unknown') {
+                        statusText.innerText = "เช็คชื่อสำเร็จ: " + match.label;
+                        sendCheckIn(match.label);
+                    }
+                });
+            }, 3000);
+        }
+
+        async function loadAttendanceHistory() {
             try {
-                const res = await fetch(SCRIPT_URL);
-                const users = await res.json();
-
-                if (users.length === 0) return alert("ยังไม่มีใครลงทะเบียน");
-
-                const labeledDescriptors = await Promise.all(users.map(async user => {
-                    const name = user[0];
-                    const fileId = user[1];
-                    const imgUrl = `https://lh3.googleusercontent.com/d/${fileId}`;
-                    const img = await faceapi.fetchImage(imgUrl);
-                    const detection = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
-                    return new faceapi.LabeledFaceDescriptors(name, [detection.descriptor]);
-                }));
-
-                const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
-                statusText.innerText = "โหมดเช็คชื่อ: ทำงาน";
-
-                setInterval(async () => {
-                    const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
-                    detections.forEach(fd => {
-                        const match = faceMatcher.findBestMatch(fd.descriptor);
-                        if (match.label !== 'unknown') {
-                            statusText.innerText = "เช็คชื่อสำเร็จ: " + match.label;
-                            sendCheckIn(match.label);
-                        }
-                    });
-                }, 3000);
-            } catch (err) { alert("โหลดข้อมูลไม่สำเร็จ"); }
+                const res = await fetch(SCRIPT_URL + "?type=attendance");
+                const data = await res.json();
+                const tbody = document.getElementById('attendance-body');
+                tbody.innerHTML = data.map(row => `<tr><td>${row[0]}</td><td>${new Date(row[1]).toLocaleTimeString('th-TH')}</td></tr>`).join('');
+            } catch (e) { console.log("ยังไม่มีประวัติ"); }
         }
 
         let lastChecked = "";
-        function sendCheckIn(name) {
+        async function sendCheckIn(name) {
             if (lastChecked === name) return;
             lastChecked = name;
-            fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'checkin', name: name })
-            });
+            await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'checkin', name: name }) });
+            loadAttendanceHistory();
             setTimeout(() => { lastChecked = ""; }, 10000);
         }
     </script>
