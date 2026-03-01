@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Professional Face ID System</title>
+    <title>ระบบเช็คชื่อใบหน้าอัจฉริยะ</title>
+    <!-- โหลด Library และ Font -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
@@ -22,45 +23,41 @@
             color: #3c4043;
         }
 
-        h1 { text-align: center; color: var(--primary); margin-bottom: 30px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { text-align: center; color: var(--primary); margin-bottom: 20px; }
 
-        /* Dashboard Stats */
+        /* Dashboard Styles */
         .dashboard {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            max-width: 1200px;
-            margin: 0 auto 30px;
+            gap: 15px;
+            margin-bottom: 25px;
         }
 
         .stat-card {
             background: white;
-            padding: 20px;
-            border-radius: 15px;
+            padding: 15px;
+            border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             text-align: center;
-            border-bottom: 5px solid var(--primary);
+            border-bottom: 4px solid var(--primary);
         }
 
         .stat-card h3 { margin: 0; font-size: 14px; color: #70757a; }
-        .stat-card div { font-size: 32px; font-weight: 500; margin-top: 10px; }
+        .stat-card div { font-size: 28px; font-weight: 500; margin-top: 5px; }
 
-        /* Layout Grid */
+        /* Main Grid */
         .main-grid {
             display: grid;
-            grid-template-columns: 1fr 350px 300px;
+            grid-template-columns: 1.5fr 1fr;
             gap: 20px;
-            max-width: 1300px;
-            margin: 0 auto;
         }
 
-        /* Camera Section */
         .box {
             background: white;
             padding: 20px;
             border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            position: relative;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
         }
 
         .video-wrapper {
@@ -75,209 +72,216 @@
         video { width: 100%; height: auto; transform: scaleX(-1); }
         canvas { position: absolute; top: 0; left: 0; transform: scaleX(-1); }
 
-        /* User List Section */
-        .user-list {
-            max-height: 600px;
+        /* Lists */
+        .list-container {
+            max-height: 400px;
             overflow-y: auto;
+            margin-top: 10px;
         }
 
         .user-item {
             display: flex;
             align-items: center;
-            padding: 12px;
-            background: #fff;
-            margin-bottom: 10px;
-            border-radius: 10px;
-            border-left: 5px solid #dadce0;
-            transition: 0.3s;
+            padding: 10px;
+            background: #fdfdfd;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border-left: 4px solid #dadce0;
         }
 
         .user-item.present { border-left-color: var(--success); background: #e6f4ea; }
-        
+
         .user-avatar {
-            width: 40px; height: 40px;
-            background: #eee;
+            width: 35px; height: 35px;
+            background: var(--primary);
             border-radius: 50%;
-            margin-right: 15px;
+            margin-right: 12px;
             display: flex; align-items: center; justify-content: center;
-            font-weight: bold; color: var(--primary);
+            color: white; font-weight: bold; font-size: 14px;
         }
 
-        /* Responsive */
-        @media (max-width: 1100px) {
-            .main-grid { grid-template-columns: 1fr; }
-            .main-grid > div { width: 100% !important; }
-        }
-
+        /* Controls */
+        .controls { margin-top: 15px; }
         .btn {
             width: 100%; padding: 12px;
             border: none; border-radius: 8px;
             font-size: 16px; cursor: pointer;
             font-family: 'Kanit'; font-weight: 500;
-            transition: 0.3s; margin-top: 10px;
+            transition: 0.2s;
         }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-success { background: var(--success); color: white; }
+        .btn-scan { background: var(--success); color: white; margin-bottom: 10px; }
+        .btn-reg { background: var(--primary); color: white; width: 100px; }
         
+        input {
+            padding: 10px; border: 1px solid #ddd; border-radius: 5px;
+            width: calc(100% - 120px); font-family: 'Kanit';
+        }
+
         .status-badge {
-            margin-bottom: 10px;
-            padding: 5px 15px;
-            border-radius: 20px;
-            display: inline-block;
-            font-size: 13px;
-            font-weight: 500;
+            padding: 5px 12px; border-radius: 20px;
+            font-size: 12px; margin-bottom: 10px; display: inline-block;
         }
         .bg-wait { background: #fff3e0; color: #e67e22; }
         .bg-ready { background: #e6f4ea; color: #1e8e3e; }
+
+        @media (max-width: 850px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
 
-    <h1>📸 Face ID Registration & Attendance</h1>
+    <div class="container">
+        <h1>📸 ระบบเช็คชื่อใบหน้าอัจฉริยะ</h1>
 
-    <!-- Feature 5: Dashboard -->
-    <div class="dashboard">
-        <div class="stat-card" style="border-color: var(--primary);">
-            <h3>สมาชิกทั้งหมด</h3>
-            <div id="stat-total">0</div>
+        <!-- Dashboard -->
+        <div class="dashboard">
+            <div class="stat-card"><h3>ลงทะเบียนแล้ว</h3><div id="stat-total">0</div></div>
+            <div class="stat-card" style="border-color: var(--success);"><h3>มาแล้ววันนี้</h3><div id="stat-present">0</div></div>
+            <div class="stat-card" style="border-color: var(--danger);"><h3>ยังไม่มา</h3><div id="stat-absent">0</div></div>
         </div>
-        <div class="stat-card" style="border-color: var(--success);">
-            <h3>มาแล้ววันนี้</h3>
-            <div id="stat-present">0</div>
-        </div>
-        <div class="stat-card" style="border-color: var(--danger);">
-            <h3>ยังไม่มา</h3>
-            <div id="stat-absent">0</div>
-        </div>
-    </div>
 
-    <div class="main-grid">
-        <!-- 1. Camera Section -->
-        <div class="box">
-            <div id="liveness-msg" class="status-badge bg-wait">ระบบกำลังเตรียมพร้อม...</div>
-            <div class="video-wrapper">
-                <video id="video" autoplay muted></video>
+        <div class="main-grid">
+            <!-- ฝั่งซ้าย: กล้อง -->
+            <div class="box">
+                <div id="msg" class="status-badge bg-wait">กำลังโหลดโมเดล AI...</div>
+                <div class="video-wrapper">
+                    <video id="video" autoplay muted></video>
+                </div>
+                <div class="controls">
+                    <button class="btn btn-scan" onclick="startRecognition()">▶️ เริ่มระบบเช็คชื่อ (สแกนใบหน้า)</button>
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" id="regName" placeholder="ระบุชื่อเพื่อลงทะเบียน/อัปเดตรูป">
+                        <button class="btn btn-reg" onclick="handleRegister()">บันทึกรูป</button>
+                    </div>
+                </div>
             </div>
-            <button class="btn btn-success" onclick="startRecognition()">▶️ เริ่มระบบเช็คชื่ออัตโนมัติ</button>
-            <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
-                <input type="text" id="regName" placeholder="ระบุชื่อเพื่อลงทะเบียน" style="width: calc(100% - 130px); padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-                <button class="btn btn-primary" style="width: 110px; margin-top: 0;" onclick="handleRegister()">ลงทะเบียน</button>
-            </div>
-        </div>
 
-        <!-- 2. All Users Section -->
-        <div class="box">
-            <h3 style="margin-top:0">👥 รายชื่อสมาชิก</h3>
-            <div id="all-users-list" class="user-list">
-                <!-- รายชื่อจะถูกใส่ด้วย JS -->
-            </div>
-        </div>
-
-        <!-- 3. Attendance History -->
-        <div class="box">
-            <h3 style="margin-top:0">🕒 บันทึกล่าสุด</h3>
-            <div id="history-log" class="user-list">
-                <!-- ประวัติจะถูกใส่ด้วย JS -->
+            <!-- ฝั่งขวา: รายชื่อและประวัติ -->
+            <div class="box">
+                <h3 style="margin:0 0 10px 0;">👥 สมาชิกทั้งหมด</h3>
+                <div id="all-users" class="list-container" style="height: 250px;"></div>
+                
+                <h3 style="margin:20px 0 10px 0;">🕒 บันทึกเวลาล่าสุด</h3>
+                <div id="history-log" class="list-container" style="height: 200px;"></div>
             </div>
         </div>
     </div>
 
     <script>
-        const SCRIPT_URL = "ใส่_URL_แอปเว็บ_ของคุณตรงนี้";
+        // กำหนดค่าตั้งต้น
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzh2ytLQUMlnBlekS2W1fX-bKHQJgRjCSLXDtiMpvLHDrqcbK8MlKMPtD6qu3ux-8X5/exec";
         const MODEL_URL = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
         
         let faceMatcher;
         let isLivenessPassed = false;
-        let allRegisteredUsers = [];
-        let todayAttendance = [];
+        let registeredUsers = [];
+        let attendanceToday = [];
 
+        // 1. เริ่มโหลดระบบ
         window.onload = async () => {
-            await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
-            await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-            await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
-            
-            const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
-            document.getElementById('video').srcObject = stream;
-            
-            refreshData();
+            try {
+                await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+                await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+                await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+                
+                const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+                document.getElementById('video').srcObject = stream;
+                
+                await refreshUI();
+                document.getElementById('msg').className = "status-badge bg-ready";
+                document.getElementById('msg').innerText = "✅ ระบบพร้อมใช้งาน";
+            } catch (err) {
+                document.getElementById('msg').innerText = "❌ ไม่สามารถโหลดกล้อง/โมเดลได้";
+            }
         };
 
-        // ดึงข้อมูลทั้งหมดจาก Google Sheets
-        async function refreshData() {
-            // ดึงข้อมูล Dashboard และประวัติ
-            const [usersRes, dashRes, attRes] = await Promise.all([
-                fetch(SCRIPT_URL),
-                fetch(SCRIPT_URL + "?type=dashboard"),
-                fetch(SCRIPT_URL + "?type=attendance")
-            ]);
+        // 2. ดึงข้อมูลจาก Google Sheets และอัปเดตหน้าจอ
+        async function refreshUI() {
+            try {
+                const [uRes, dRes, aRes] = await Promise.all([
+                    fetch(SCRIPT_URL),
+                    fetch(SCRIPT_URL + "?type=dashboard"),
+                    fetch(SCRIPT_URL + "?type=attendance")
+                ]);
 
-            allRegisteredUsers = await usersRes.json();
-            const dash = await dashRes.json();
-            todayAttendance = await attRes.json();
+                registeredUsers = await uRes.json();
+                const dash = await dRes.json();
+                attendanceToday = await aRes.json();
 
-            // อัปเดต Dashboard
-            document.getElementById('stat-total').innerText = dash.total;
-            document.getElementById('stat-present').innerText = dash.present;
-            document.getElementById('stat-absent').innerText = dash.absent;
+                // อัปเดตตัวเลข Dashboard
+                document.getElementById('stat-total').innerText = dash.total;
+                document.getElementById('stat-present').innerText = dash.present;
+                document.getElementById('stat-absent').innerText = dash.absent;
 
-            // อัปเดตรายชื่อสมาชิกทั้งหมด
-            const usersContainer = document.getElementById('all-users-list');
-            usersContainer.innerHTML = allRegisteredUsers.map(user => {
-                const isPresent = todayAttendance.some(a => a[0] === user[0]);
-                return `
-                    <div class="user-item ${isPresent ? 'present' : ''}">
-                        <div class="user-avatar">${user[0].charAt(0)}</div>
-                        <div>
-                            <div style="font-weight:500">${user[0]}</div>
-                            <div style="font-size:11px; color:#777">${isPresent ? '✅ เช็คอินแล้ว' : '⌛ ยังไม่มา'}</div>
+                // วาดรายชื่อสมาชิก
+                document.getElementById('all-users').innerHTML = registeredUsers.map(u => {
+                    const isPresent = attendanceToday.some(a => a[0] === u[0]);
+                    return `
+                        <div class="user-item ${isPresent ? 'present' : ''}">
+                            <div class="user-avatar">${u[0].charAt(0)}</div>
+                            <div style="flex:1">
+                                <div style="font-size:14px; font-weight:500;">${u[0]}</div>
+                                <div style="font-size:11px; color:#888;">${isPresent ? '✅ เช็คอินแล้ว' : '⌛ ยังไม่มา'}</div>
+                            </div>
                         </div>
+                    `;
+                }).join('');
+
+                // วาดประวัติล่าสุด
+                document.getElementById('history-log').innerHTML = attendanceToday.map(h => `
+                    <div class="user-item present">
+                        <div style="font-size:13px"><b>${h[0]}</b> <span style="float:right; color:#666">${new Date(h[1]).toLocaleTimeString('th-TH')}</span></div>
                     </div>
-                `;
-            }).join('');
+                `).join('');
 
-            // อัปเดตประวัติล่าสุด
-            document.getElementById('history-log').innerHTML = todayAttendance.map(h => `
-                <div class="user-item present" style="padding:8px">
-                    <div style="font-size:13px"><b>${h[0]}</b><br><small>${new Date(h[1]).toLocaleTimeString('th-TH')}</small></div>
-                </div>
-            `).join('');
-
-            document.getElementById('liveness-msg').className = "status-badge bg-ready";
-            document.getElementById('liveness-msg').innerText = "✅ ระบบพร้อมใช้งาน";
+            } catch (e) { console.error("Refresh Error:", e); }
         }
 
+        // 3. เริ่มโหมดสแกนใบหน้า
         async function startRecognition() {
-            if(allRegisteredUsers.length === 0) return alert("ยังไม่มีผู้ลงทะเบียน");
-
-            const labeledDescriptors = await Promise.all(allRegisteredUsers.map(async user => {
-                const img = await faceapi.fetchImage(`https://lh3.googleusercontent.com/d/${user[1]}`);
-                const det = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
-                return new faceapi.LabeledFaceDescriptors(user[0], [det.descriptor]);
+            if(registeredUsers.length === 0) return alert("ยังไม่มีข้อมูลผู้ลงทะเบียน");
+            
+            document.getElementById('msg').innerText = "⌛ กำลังโหลดฐานข้อมูลใบหน้า...";
+            
+            // โหลดรูปจาก Drive มาทำ Descriptor
+            const labeledDescriptors = await Promise.all(registeredUsers.map(async user => {
+                try {
+                    const imgUrl = `https://lh3.googleusercontent.com/d/${user[1]}`;
+                    const img = await faceapi.fetchImage(imgUrl);
+                    const det = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+                    return new faceapi.LabeledFaceDescriptors(user[0], [det.descriptor]);
+                } catch(e) { return null; }
             }));
 
-            faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
+            const validDescriptors = labeledDescriptors.filter(d => d !== null);
+            faceMatcher = new faceapi.FaceMatcher(validDescriptors, 0.6);
+
             const video = document.getElementById('video');
             const canvas = faceapi.createCanvasFromMedia(video);
             document.querySelector('.video-wrapper').append(canvas);
             const displaySize = { width: video.offsetWidth, height: video.offsetHeight };
             faceapi.matchDimensions(canvas, displaySize);
 
-            document.getElementById('liveness-msg').innerText = "👁️ กรุณากระพริบตาเพื่อเช็คชื่อ";
+            document.getElementById('msg').className = "status-badge bg-wait";
+            document.getElementById('msg').innerText = "👁️ กรุณากระพริบตาเพื่อเช็คชื่อ";
 
             setInterval(async () => {
                 const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
-                const resizedDetections = faceapi.resizeResults(detections, displaySize);
+                const resized = faceapi.resizeResults(detections, displaySize);
                 canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
 
-                resizedDetections.forEach(detection => {
-                    const match = faceMatcher.findBestMatch(detection.descriptor);
-                    
-                    // วาดกรอบ (Feature 1)
-                    new faceapi.draw.DrawBox(detection.detection.box, { label: match.toString() }).draw(canvas);
+                resized.forEach(d => {
+                    const match = faceMatcher.findBestMatch(d.descriptor);
+                    // วาดกรอบและชื่อ (Feature 1)
+                    new faceapi.draw.DrawBox(d.detection.box, { label: match.toString() }).draw(canvas);
 
-                    // เช็คกระพริบตา (Feature 2)
-                    const eyeDist = Math.abs(detection.landmarks.getLeftEye()[1].y - detection.landmarks.getLeftEye()[5].y);
-                    if (eyeDist < 3.0 && match.label !== 'unknown') {
+                    // ตรวจการกระพริบตา (Feature 2)
+                    const landmarks = d.landmarks;
+                    const leftEye = landmarks.getLeftEye();
+                    const eyeDist = Math.abs(leftEye[1].y - leftEye[5].y);
+
+                    if (eyeDist < 3.2 && match.label !== 'unknown') {
                         isLivenessPassed = true;
                         handleCheckIn(match.label);
                     }
@@ -289,28 +293,46 @@
         async function handleCheckIn(name) {
             if (lastUser === name || !isLivenessPassed) return;
             lastUser = name;
-            await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'checkin', name: name }) });
-            refreshData();
-            setTimeout(() => { lastUser = ""; isLivenessPassed = false; }, 8000);
+            
+            document.getElementById('msg').innerText = "✅ บันทึกเวลา: " + name;
+            await fetch(SCRIPT_URL, { 
+                method: 'POST', 
+                body: JSON.stringify({ action: 'checkin', name: name }) 
+            });
+            
+            await refreshUI();
+            setTimeout(() => { 
+                lastUser = ""; 
+                isLivenessPassed = false; 
+                document.getElementById('msg').innerText = "👁️ กรุณากระพริบตาเพื่อเช็คชื่อ";
+            }, 8000);
         }
 
+        // 4. ลงทะเบียนใหม่ / อัปเดตรูป
         async function handleRegister() {
             const name = document.getElementById('regName').value;
-            if(!name) return alert("กรุณาใส่ชื่อ");
+            if(!name) return alert("กรุณาระบุชื่อ");
+
+            document.getElementById('msg').innerText = "⌛ กำลังถ่ายรูป...";
             const video = document.getElementById('video');
             const det = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
-            if(!det) return alert("ไม่พบใบหน้า");
+            
+            if(!det) return alert("ไม่พบใบหน้า กรุณาจ้องหน้ากล้อง");
 
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth; canvas.height = video.videoHeight;
             canvas.getContext('2d').drawImage(video, 0, 0);
             const base64 = canvas.toDataURL('image/jpeg').split(',')[1];
 
-            document.getElementById('liveness-msg').innerText = "⌛ กำลังบันทึกข้อมูล...";
-            await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'register', name: name, image: base64 }) });
-            alert("บันทึกข้อมูลเรียบร้อย");
+            document.getElementById('msg').innerText = "⌛ กำลังอัปโหลดไปยังระบบ...";
+            await fetch(SCRIPT_URL, { 
+                method: 'POST', 
+                body: JSON.stringify({ action: 'register', name: name, image: base64 }) 
+            });
+
+            alert("บันทึกข้อมูลสำเร็จ");
             document.getElementById('regName').value = "";
-            refreshData();
+            await refreshUI();
         }
     </script>
 </body>
