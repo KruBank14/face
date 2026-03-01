@@ -3,337 +3,255 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบเช็คชื่อใบหน้าอัจฉริยะ</title>
-    <!-- โหลด Library และ Font -->
+    <title>AI FaceID Professional - NextGen</title>
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@200;400;600&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary: #1a73e8;
-            --success: #34a853;
-            --warning: #fbbc04;
-            --danger: #ea4335;
-            --bg: #f8f9fa;
-        }
-
-        body {
-            font-family: 'Kanit', sans-serif;
-            background-color: var(--bg);
-            margin: 0; padding: 20px;
-            color: #3c4043;
-        }
-
-        .container { max-width: 1200px; margin: 0 auto; }
-        h1 { text-align: center; color: var(--primary); margin-bottom: 20px; }
-
-        /* Dashboard Styles */
-        .dashboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        .stat-card {
-            background: white;
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            text-align: center;
-            border-bottom: 4px solid var(--primary);
-        }
-
-        .stat-card h3 { margin: 0; font-size: 14px; color: #70757a; }
-        .stat-card div { font-size: 28px; font-weight: 500; margin-top: 5px; }
+        :root { --primary: #00d2ff; --success: #00ff88; --danger: #ff0055; --dark-bg: #0f172a; }
+        body { font-family: 'Kanit', sans-serif; background: var(--dark-bg); color: #fff; margin: 0; padding: 20px; overflow-x: hidden; }
+        
+        /* Dashboard Stats */
+        .dashboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 1200px; margin: 0 auto 30px; }
+        .stat-card { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); text-align: center; backdrop-filter: blur(10px); }
+        .stat-card h3 { margin: 0; font-size: 14px; color: var(--primary); font-family: 'Orbitron'; letter-spacing: 2px; }
+        .stat-card .value { font-size: 38px; font-weight: 700; margin-top: 10px; font-family: 'Orbitron'; }
 
         /* Main Grid */
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1.5fr 1fr;
-            gap: 20px;
-        }
-
-        .box {
-            background: white;
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-        }
-
-        .video-wrapper {
-            position: relative;
-            width: 100%;
-            background: #000;
-            border-radius: 10px;
-            overflow: hidden;
-            line-height: 0;
-        }
-
-        video { width: 100%; height: auto; transform: scaleX(-1); }
-        canvas { position: absolute; top: 0; left: 0; transform: scaleX(-1); }
-
-        /* Lists */
-        .list-container {
-            max-height: 400px;
-            overflow-y: auto;
-            margin-top: 10px;
-        }
-
-        .user-item {
-            display: flex;
-            align-items: center;
-            padding: 10px;
-            background: #fdfdfd;
-            margin-bottom: 8px;
-            border-radius: 8px;
-            border-left: 4px solid #dadce0;
-        }
-
-        .user-item.present { border-left-color: var(--success); background: #e6f4ea; }
-
-        .user-avatar {
-            width: 35px; height: 35px;
-            background: var(--primary);
-            border-radius: 50%;
-            margin-right: 12px;
-            display: flex; align-items: center; justify-content: center;
-            color: white; font-weight: bold; font-size: 14px;
-        }
-
-        /* Controls */
-        .controls { margin-top: 15px; }
-        .btn {
-            width: 100%; padding: 12px;
-            border: none; border-radius: 8px;
-            font-size: 16px; cursor: pointer;
-            font-family: 'Kanit'; font-weight: 500;
-            transition: 0.2s;
-        }
-        .btn-scan { background: var(--success); color: white; margin-bottom: 10px; }
-        .btn-reg { background: var(--primary); color: white; width: 100px; }
+        .main-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 30px; max-width: 1300px; margin: 0 auto; }
         
-        input {
-            padding: 10px; border: 1px solid #ddd; border-radius: 5px;
-            width: calc(100% - 120px); font-family: 'Kanit';
-        }
+        /* Video & HUD */
+        .video-container { position: relative; border-radius: 24px; overflow: hidden; border: 2px solid rgba(0, 210, 255, 0.3); box-shadow: 0 0 50px rgba(0, 210, 255, 0.1); line-height: 0; }
+        video { width: 100%; height: auto; transform: scaleX(-1); }
+        canvas { position: absolute; top: 0; left: 0; }
 
-        .status-badge {
-            padding: 5px 12px; border-radius: 20px;
-            font-size: 12px; margin-bottom: 10px; display: inline-block;
-        }
-        .bg-wait { background: #fff3e0; color: #e67e22; }
-        .bg-ready { background: #e6f4ea; color: #1e8e3e; }
+        /* Scanning HUD Overlay */
+        .hud-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; border: 2px solid transparent; transition: 0.3s; }
+        .scan-line { position: absolute; width: 100%; height: 2px; background: linear-gradient(to right, transparent, var(--primary), transparent); top: 0; animation: scan 3s linear infinite; display: none; }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+        .shutter-flash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #fff; opacity: 0; transition: 0.2s; pointer-events: none; }
 
-        @media (max-width: 850px) {
-            .main-grid { grid-template-columns: 1fr; }
-        }
+        /* Registration Form */
+        .reg-card { background: rgba(255,255,255,0.05); padding: 25px; border-radius: 24px; backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); }
+        .btn { width: 100%; padding: 15px; border: none; border-radius: 12px; font-family: 'Kanit'; font-weight: 600; cursor: pointer; transition: 0.3s; margin-top: 10px; font-size: 16px; }
+        .btn-primary { background: var(--primary); color: #000; }
+        .btn-primary:hover { transform: scale(1.02); box-shadow: 0 0 20px var(--primary); }
+        .btn-success { background: var(--success); color: #000; }
+        .btn-success:disabled { background: #334155; color: #94a3b8; }
+
+        input { width: calc(100% - 30px); padding: 15px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; color: #fff; font-family: 'Kanit'; margin-bottom: 15px; }
+        
+        /* Attendance List */
+        .list-box { max-height: 400px; overflow-y: auto; margin-top: 20px; }
+        .user-row { display: flex; align-items: center; padding: 12px; background: rgba(255,255,255,0.03); margin-bottom: 8px; border-radius: 15px; border-left: 4px solid var(--primary); }
+        .user-row.present { border-left-color: var(--success); background: rgba(0, 255, 136, 0.1); }
+
+        .status-badge { padding: 5px 15px; border-radius: 30px; font-size: 12px; font-weight: 600; display: inline-block; margin-bottom: 15px; font-family: 'Orbitron'; }
+        .bg-wait { background: #334155; color: #94a3b8; }
+        .bg-ready { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>📸 ระบบเช็คชื่อใบหน้าอัจฉริยะ</h1>
+    <h2 style="text-align: center; font-family: 'Orbitron'; letter-spacing: 5px; color: var(--primary);">SYSTEM: FACE_ID_V3</h2>
 
-        <!-- Dashboard -->
-        <div class="dashboard">
-            <div class="stat-card"><h3>ลงทะเบียนแล้ว</h3><div id="stat-total">0</div></div>
-            <div class="stat-card" style="border-color: var(--success);"><h3>มาแล้ววันนี้</h3><div id="stat-present">0</div></div>
-            <div class="stat-card" style="border-color: var(--danger);"><h3>ยังไม่มา</h3><div id="stat-absent">0</div></div>
+    <div class="dashboard">
+        <div class="stat-card"><h3>TOTAL_USERS</h3><div class="value" id="stat-total">0</div></div>
+        <div class="stat-card"><h3>PRESENT</h3><div class="value" id="stat-present" style="color:var(--success)">0</div></div>
+        <div class="stat-card"><h3>ABSENT</h3><div class="value" id="stat-absent" style="color:var(--danger)">0</div></div>
+    </div>
+
+    <div class="main-grid">
+        <!-- Section: กล้อง -->
+        <div>
+            <div id="sys-status" class="status-badge bg-wait">INITIALIZING...</div>
+            <div class="video-container" id="video-box">
+                <video id="video" autoplay muted></video>
+                <div id="hud-line" class="scan-line"></div>
+                <div id="flash" class="shutter-flash"></div>
+                <!-- Canvas drawing will be here -->
+            </div>
+            <button class="btn btn-primary" style="font-family: 'Orbitron';" onclick="startScanMode()">START_AUTOMATIC_SCAN</button>
         </div>
 
-        <div class="main-grid">
-            <!-- ฝั่งซ้าย: กล้อง -->
-            <div class="box">
-                <div id="msg" class="status-badge bg-wait">กำลังโหลดโมเดล AI...</div>
-                <div class="video-wrapper">
-                    <video id="video" autoplay muted></video>
-                </div>
-                <div class="controls">
-                    <button class="btn btn-scan" onclick="startRecognition()">▶️ เริ่มระบบเช็คชื่อ (สแกนใบหน้า)</button>
-                    <div style="display:flex; gap:10px;">
-                        <input type="text" id="regName" placeholder="ระบุชื่อเพื่อลงทะเบียน/อัปเดตรูป">
-                        <button class="btn btn-reg" onclick="handleRegister()">บันทึกรูป</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ฝั่งขวา: รายชื่อและประวัติ -->
-            <div class="box">
-                <h3 style="margin:0 0 10px 0;">👥 สมาชิกทั้งหมด</h3>
-                <div id="all-users" class="list-container" style="height: 250px;"></div>
-                
-                <h3 style="margin:20px 0 10px 0;">🕒 บันทึกเวลาล่าสุด</h3>
-                <div id="history-log" class="list-container" style="height: 200px;"></div>
-            </div>
+        <!-- Section: ลงทะเบียน & รายชื่อ -->
+        <div class="reg-card">
+            <h3 style="margin-top:0; font-family: 'Orbitron'; font-size: 16px; color: var(--primary);">REGISTRATION_UNIT</h3>
+            <input type="text" id="regName" placeholder="ENTER_FULL_NAME">
+            <div id="face-score" style="font-size: 12px; margin-bottom: 10px; color: #94a3b8;">QUALITY: 0%</div>
+            <button id="regBtn" class="btn btn-success" onclick="registerFace()" disabled>CAPTURE_FACE</button>
+            
+            <h3 style="margin: 30px 0 10px 0; font-family: 'Orbitron'; font-size: 14px;">LIVE_FEED_LOG</h3>
+            <div id="attendance-list" class="list-box"></div>
         </div>
     </div>
 
-    <script>
-        // กำหนดค่าตั้งต้น
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzh2ytLQUMlnBlekS2W1fX-bKHQJgRjCSLXDtiMpvLHDrqcbK8MlKMPtD6qu3ux-8X5/exec";
-        const MODEL_URL = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
-        
-        let faceMatcher;
-        let isLivenessPassed = false;
-        let registeredUsers = [];
-        let attendanceToday = [];
+<script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzh2ytLQUMlnBlekS2W1fX-bKHQJgRjCSLXDtiMpvLHDrqcbK8MlKMPtD6qu3ux-8X5/exec";
+    const MODEL_URL = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
 
-        // 1. เริ่มโหลดระบบ
-        window.onload = async () => {
-            try {
-                await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
-                await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-                await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
-                
-                const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
-                document.getElementById('video').srcObject = stream;
-                
-                await refreshUI();
-                document.getElementById('msg').className = "status-badge bg-ready";
-                document.getElementById('msg').innerText = "✅ ระบบพร้อมใช้งาน";
-            } catch (err) {
-                document.getElementById('msg').innerText = "❌ ไม่สามารถโหลดกล้อง/โมเดลได้";
+    let registeredUsers = [];
+    let isBlinked = false;
+    let faceMatcher;
+    let currentlyCheckedIn = ""; // เก็บชื่อคนที่เพิ่งเช็คสำเร็จ
+
+    window.onload = async () => {
+        try {
+            await Promise.all([
+                faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+                faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+            ]);
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+            document.getElementById('video').srcObject = stream;
+            
+            await refreshData();
+            document.getElementById('sys-status').innerText = "SYSTEM_READY";
+            document.getElementById('sys-status').className = "status-badge bg-ready";
+            
+            runRegistrationCheck();
+        } catch (e) { alert("Error: " + e.message); }
+    };
+
+    // --- ลูกเล่น: ตรวจสอบความพร้อมของใบหน้าก่อนลงทะเบียน ---
+    async function runRegistrationCheck() {
+        const video = document.getElementById('video');
+        setInterval(async () => {
+            const det = await faceapi.detectSingleFace(video).withFaceLandmarks();
+            const btn = document.getElementById('regBtn');
+            const scoreDisp = document.getElementById('face-score');
+            
+            if (det) {
+                const score = Math.round(det.detection.score * 100);
+                scoreDisp.innerText = `QUALITY: ${score}% - READY`;
+                scoreDisp.style.color = "var(--success)";
+                btn.disabled = false;
+            } else {
+                scoreDisp.innerText = `QUALITY: 0% - NO_FACE_DETECTED`;
+                scoreDisp.style.color = "var(--danger)";
+                btn.disabled = true;
             }
-        };
+        }, 800);
+    }
 
-        // 2. ดึงข้อมูลจาก Google Sheets และอัปเดตหน้าจอ
-        async function refreshUI() {
+    // --- ฟังก์ชันสแกนชื่อ (Dynamic Frame Color) ---
+    async function startScanMode() {
+        if(registeredUsers.length === 0) return alert("No Data Found.");
+        
+        document.getElementById('hud-line').style.display = "block";
+        document.getElementById('sys-status').innerText = "LOADING_DESCRIPTORS...";
+
+        const labeledDescriptors = await Promise.all(registeredUsers.map(async u => {
             try {
-                const [uRes, dRes, aRes] = await Promise.all([
-                    fetch(SCRIPT_URL),
-                    fetch(SCRIPT_URL + "?type=dashboard"),
-                    fetch(SCRIPT_URL + "?type=attendance")
-                ]);
+                const img = await faceapi.fetchImage(`https://lh3.googleusercontent.com/d/${u[1]}`);
+                const det = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+                return new faceapi.LabeledFaceDescriptors(u[0], [det.descriptor]);
+            } catch(e) { return null; }
+        }));
 
-                registeredUsers = await uRes.json();
-                const dash = await dRes.json();
-                attendanceToday = await aRes.json();
+        faceMatcher = new faceapi.FaceMatcher(labeledDescriptors.filter(d => d), 0.6);
+        
+        const video = document.getElementById('video');
+        const canvas = faceapi.createCanvasFromMedia(video);
+        document.getElementById('video-box').append(canvas);
+        const displaySize = { width: video.offsetWidth, height: video.offsetHeight };
+        faceapi.matchDimensions(canvas, displaySize);
 
-                // อัปเดตตัวเลข Dashboard
-                document.getElementById('stat-total').innerText = dash.total;
-                document.getElementById('stat-present').innerText = dash.present;
-                document.getElementById('stat-absent').innerText = dash.absent;
+        document.getElementById('sys-status').innerText = "SCANNING: BLINK_TO_VERIFY";
 
-                // วาดรายชื่อสมาชิก
-                document.getElementById('all-users').innerHTML = registeredUsers.map(u => {
-                    const isPresent = attendanceToday.some(a => a[0] === u[0]);
-                    return `
-                        <div class="user-item ${isPresent ? 'present' : ''}">
-                            <div class="user-avatar">${u[0].charAt(0)}</div>
-                            <div style="flex:1">
-                                <div style="font-size:14px; font-weight:500;">${u[0]}</div>
-                                <div style="font-size:11px; color:#888;">${isPresent ? '✅ เช็คอินแล้ว' : '⌛ ยังไม่มา'}</div>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
+        setInterval(async () => {
+            const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
+            const resized = faceapi.resizeResults(detections, displaySize);
+            canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
 
-                // วาดประวัติล่าสุด
-                document.getElementById('history-log').innerHTML = attendanceToday.map(h => `
-                    <div class="user-item present">
-                        <div style="font-size:13px"><b>${h[0]}</b> <span style="float:right; color:#666">${new Date(h[1]).toLocaleTimeString('th-TH')}</span></div>
-                    </div>
-                `).join('');
+            resized.forEach(d => {
+                const match = faceMatcher.findBestMatch(d.descriptor);
+                
+                // Mirror Text Fix
+                const box = d.detection.box;
+                const flippedBox = { x: displaySize.width - box.x - box.width, y: box.y, width: box.width, height: box.height };
+                
+                // --- ลูกเล่น: เปลี่ยนสีกรอบเป็นเขียวถ้าเช็คสำเร็จ ---
+                let boxColor = "#00d2ff"; // สีฟ้าปกติ
+                if (currentlyCheckedIn === match.label) {
+                    boxColor = "#00ff88"; // สีเขียวเมื่อผ่าน
+                }
 
-            } catch (e) { console.error("Refresh Error:", e); }
-        }
+                const drawOptions = { label: match.toString(), boxColor: boxColor };
+                new faceapi.draw.DrawBox(flippedBox, drawOptions).draw(canvas);
 
-        // 3. เริ่มโหมดสแกนใบหน้า
-        async function startRecognition() {
-            if(registeredUsers.length === 0) return alert("ยังไม่มีข้อมูลผู้ลงทะเบียน");
-            
-            document.getElementById('msg').innerText = "⌛ กำลังโหลดฐานข้อมูลใบหน้า...";
-            
-            // โหลดรูปจาก Drive มาทำ Descriptor
-            const labeledDescriptors = await Promise.all(registeredUsers.map(async user => {
-                try {
-                    const imgUrl = `https://lh3.googleusercontent.com/d/${user[1]}`;
-                    const img = await faceapi.fetchImage(imgUrl);
-                    const det = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
-                    return new faceapi.LabeledFaceDescriptors(user[0], [det.descriptor]);
-                } catch(e) { return null; }
-            }));
-
-            const validDescriptors = labeledDescriptors.filter(d => d !== null);
-            faceMatcher = new faceapi.FaceMatcher(validDescriptors, 0.6);
-
-            const video = document.getElementById('video');
-            const canvas = faceapi.createCanvasFromMedia(video);
-            document.querySelector('.video-wrapper').append(canvas);
-            const displaySize = { width: video.offsetWidth, height: video.offsetHeight };
-            faceapi.matchDimensions(canvas, displaySize);
-
-            document.getElementById('msg').className = "status-badge bg-wait";
-            document.getElementById('msg').innerText = "👁️ กรุณากระพริบตาเพื่อเช็คชื่อ";
-
-            setInterval(async () => {
-                const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
-                const resized = faceapi.resizeResults(detections, displaySize);
-                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-
-                resized.forEach(d => {
-                    const match = faceMatcher.findBestMatch(d.descriptor);
-                    // วาดกรอบและชื่อ (Feature 1)
-                    new faceapi.draw.DrawBox(d.detection.box, { label: match.toString() }).draw(canvas);
-
-                    // ตรวจการกระพริบตา (Feature 2)
-                    const landmarks = d.landmarks;
-                    const leftEye = landmarks.getLeftEye();
-                    const eyeDist = Math.abs(leftEye[1].y - leftEye[5].y);
-
-                    if (eyeDist < 3.2 && match.label !== 'unknown') {
-                        isLivenessPassed = true;
-                        handleCheckIn(match.label);
-                    }
-                });
-            }, 100);
-        }
-
-        let lastUser = "";
-        async function handleCheckIn(name) {
-            if (lastUser === name || !isLivenessPassed) return;
-            lastUser = name;
-            
-            document.getElementById('msg').innerText = "✅ บันทึกเวลา: " + name;
-            await fetch(SCRIPT_URL, { 
-                method: 'POST', 
-                body: JSON.stringify({ action: 'checkin', name: name }) 
+                // Blink Detection
+                const ear = Math.abs(d.landmarks.getLeftEye()[1].y - d.landmarks.getLeftEye()[5].y);
+                if (ear < 3.0 && match.label !== 'unknown') {
+                    isBlinked = true;
+                    handleAttendance(match.label);
+                }
             });
-            
-            await refreshUI();
-            setTimeout(() => { 
-                lastUser = ""; 
-                isLivenessPassed = false; 
-                document.getElementById('msg').innerText = "👁️ กรุณากระพริบตาเพื่อเช็คชื่อ";
-            }, 8000);
-        }
+        }, 100);
+    }
 
-        // 4. ลงทะเบียนใหม่ / อัปเดตรูป
-        async function handleRegister() {
-            const name = document.getElementById('regName').value;
-            if(!name) return alert("กรุณาระบุชื่อ");
+    async function handleAttendance(name) {
+        if (currentlyCheckedIn === name || !isBlinked) return;
+        currentlyCheckedIn = name;
+        
+        document.getElementById('sys-status').innerText = "VERIFIED: " + name;
+        await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'checkin', name: name }) });
+        
+        await refreshData();
+        // รอ 5 วินาทีให้กรอบเป็นสีเขียวค้างไว้ แล้วค่อยรีเซ็ตเป็นสีฟ้า
+        setTimeout(() => { 
+            currentlyCheckedIn = ""; 
+            isBlinked = false; 
+            document.getElementById('sys-status').innerText = "SCANNING: BLINK_TO_VERIFY"; 
+        }, 5000);
+    }
 
-            document.getElementById('msg').innerText = "⌛ กำลังถ่ายรูป...";
-            const video = document.getElementById('video');
-            const det = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
-            
-            if(!det) return alert("ไม่พบใบหน้า กรุณาจ้องหน้ากล้อง");
+    // --- ลูกเล่น: ลงทะเบียนแบบมี Shutter Flash ---
+    async function registerFace() {
+        const name = document.getElementById('regName').value;
+        if(!name) return alert("Please enter name.");
 
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
-            const base64 = canvas.toDataURL('image/jpeg').split(',')[1];
+        // Flash Effect
+        const flash = document.getElementById('flash');
+        flash.style.opacity = "1";
+        setTimeout(() => flash.style.opacity = "0", 200);
 
-            document.getElementById('msg').innerText = "⌛ กำลังอัปโหลดไปยังระบบ...";
-            await fetch(SCRIPT_URL, { 
-                method: 'POST', 
-                body: JSON.stringify({ action: 'register', name: name, image: base64 }) 
-            });
+        const video = document.getElementById('video');
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        const base64 = canvas.toDataURL('image/jpeg').split(',')[1];
 
-            alert("บันทึกข้อมูลสำเร็จ");
-            document.getElementById('regName').value = "";
-            await refreshUI();
-        }
-    </script>
+        document.getElementById('sys-status').innerText = "UPLOADING_ENCRYPTION...";
+        await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'register', name: name, image: base64 }) });
+        
+        alert("Face Registered Successfully!");
+        document.getElementById('regName').value = "";
+        refreshData();
+        document.getElementById('sys-status').innerText = "SYSTEM_READY";
+    }
+
+    async function refreshData() {
+        const [uRes, dRes, aRes] = await Promise.all([
+            fetch(SCRIPT_URL),
+            fetch(SCRIPT_URL + "?type=dashboard"),
+            fetch(SCRIPT_URL + "?type=attendance")
+        ]);
+
+        registeredUsers = await uRes.json();
+        const dash = await dRes.json();
+        const history = await aRes.json();
+
+        document.getElementById('stat-total').innerText = dash.total;
+        document.getElementById('stat-present').innerText = dash.present;
+        document.getElementById('stat-absent').innerText = dash.absent;
+
+        document.getElementById('attendance-list').innerHTML = history.map(h => `
+            <div class="user-row present">
+                <div style="font-size:13px; font-weight:600;">${h[0]}</div>
+                <div style="margin-left:auto; font-size:11px; font-family:'Orbitron'; color:var(--primary);">${new Date(h[1]).toLocaleTimeString('th-TH')}</div>
+            </div>
+        `).join('');
+    }
+</script>
 </body>
 </html>
