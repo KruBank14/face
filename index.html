@@ -212,11 +212,12 @@ function beDateToCE(beStr) {
 // พ.ศ. "2568-06-15" → "15 มิ.ย. 2568"
 function beToThaiDisplay(beStr) {
     if (!beStr) return '';
+    // ถ้าเป็น "15 มิ.ย. 2568" อยู่แล้ว → คืนตรงๆ
+    if (/^\d{1,2}\s+[ก-ๆ.]+\s+\d{4}$/.test(String(beStr))) return beStr;
+    // ISO format
     const p = String(beStr).split('-');
     if (p.length !== 3) return beStr;
-    const day = parseInt(p[2]);
-    const month = THAI_MONTHS_SHORT[parseInt(p[1])] || '';
-    return day + ' ' + month + ' ' + p[0];
+    return parseInt(p[2]) + ' ' + (THAI_MONTHS_SHORT[parseInt(p[1])]||'') + ' ' + p[0];
 }
 
 // พ.ศ. "2568-06-15" → "15 มิถุนายน 2568"
@@ -238,11 +239,30 @@ function beMonthToThai(mk) {
 // พ.ศ. "2568-06-15" → แค่ "15/06" (สั้นสำหรับกราฟ)
 function beToShort(beStr) {
     if (!beStr) return '';
-    const p = String(beStr).split('-');
+    // normalize "15 มิ.ย. 2568" → ISO ก่อน
+    const iso = displayBEToISO(beStr);
+    const p = String(iso).split('-');
     if (p.length !== 3) return beStr;
-    return p[2] + '/' + p[1];
+    return p[2] + '/' + p[1]; // "15/06"
 }
-
+const THAI_MONTH_MAP = {
+    "ม.ค.":1,"ก.พ.":2,"มี.ค.":3,"เม.ย.":4,"พ.ค.":5,"มิ.ย.":6,
+    "ก.ค.":7,"ส.ค.":8,"ก.ย.":9,"ต.ค.":10,"พ.ย.":11,"ธ.ค.":12
+};
+function displayBEToISO(str) {
+    if (!str) return '';
+    // "15 มิ.ย. 2568" → "2568-06-15"
+    const m = String(str).match(/^(\d{1,2})\s+([ก-ๆ.]+)\s+(\d{4})$/);
+    if (m) {
+        const day = String(m[1]).padStart(2,'0');
+        const month = String(THAI_MONTH_MAP[m[2]] || 0).padStart(2,'0');
+        const year = m[3];
+        if (month !== '00') return year + '-' + month + '-' + day;
+    }
+    // ISO อยู่แล้ว
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+    return str;
+}
 // วันนี้เป็น พ.ศ. "YYYY-MM-DD"
 function todayBE() {
     const d = new Date();
